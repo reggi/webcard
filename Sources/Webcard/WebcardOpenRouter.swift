@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import UniformTypeIdentifiers
 import WebcardCore
@@ -1049,11 +1050,15 @@ private final class WebcardFolderWindowController: NSWindowController, NSWindowD
     private let commandID = UUID()
     private let hasSecurityScopedAccess: Bool
     private let onClose: () -> Void
+    private let session: WebcardFolderWindowSession
+    private let toolbarController: WebcardFolderToolbarController
 
     init(folderURL: URL, onClose: @escaping () -> Void) {
         self.folderURL = folderURL
         hasSecurityScopedAccess = folderURL.startAccessingSecurityScopedResource()
         self.onClose = onClose
+        session = WebcardFolderWindowSession(folderURL: folderURL)
+        toolbarController = WebcardFolderToolbarController(session: session)
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1180, height: 800),
@@ -1062,15 +1067,24 @@ private final class WebcardFolderWindowController: NSWindowController, NSWindowD
             defer: false
         )
         window.title = folderURL.lastPathComponent
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.toolbarStyle = .unified
+        window.styleMask.insert(.fullSizeContentView)
         window.minSize = NSSize(width: 760, height: 560)
-        window.contentViewController = NSHostingController(
-            rootView: WebcardFolderView(folderURL: folderURL)
+        let hostingController = NSHostingController(
+            rootView: WebcardFolderView(session: session)
         )
+        window.contentViewController = hostingController
         window.tabbingMode = .preferred
         window.center()
 
         super.init(window: window)
         window.delegate = self
+        hostingController.view.layoutSubtreeIfNeeded()
+        window.toolbar = toolbarController.makeToolbar(
+            tracking: hostingController.view.firstDescendant(ofType: NSSplitView.self)
+        )
     }
 
     @available(*, unavailable)
@@ -1092,5 +1106,250 @@ private final class WebcardFolderWindowController: NSWindowController, NSWindowD
 
     func windowDidResignKey(_ notification: Notification) {
         WebcardFolderCommandCenter.shared.deactivate(id: commandID)
+    }
+}
+
+private extension NSView {
+    func firstDescendant<ViewType: NSView>(ofType type: ViewType.Type) -> ViewType? {
+        if let matchingView = self as? ViewType {
+            return matchingView
+        }
+        for subview in subviews {
+            if let matchingView = subview.firstDescendant(ofType: type) {
+                return matchingView
+            }
+        }
+        return nil
+    }
+}
+
+private extension NSToolbarItem.Identifier {
+    static let webcardSidebarToggle = Self("webcard.sidebar-toggle")
+    static let webcardSidebarSeparator = Self("webcard.sidebar-separator")
+    static let webcardBack = Self("webcard.back")
+    static let webcardForward = Self("webcard.forward")
+    static let webcardFolderTitle = Self("webcard.folder-title")
+    static let webcardSearch = Self("webcard.search")
+    static let webcardAdd = Self("webcard.add")
+}
+
+@MainActor
+private final class WebcardFolderToolbarController:
+    NSObject,
+    NSToolbarDelegate,
+    NSToolbarItemValidation
+{
+    private let session: WebcardFolderWindowSession
+    private weak var toolbar: NSToolbar?
+    private weak var trackedSplitView: NSSplitView?
+    private weak var titleLabel: NSTextField?
+    private weak var searchField: NSSearchField?
+    private var cancellables: Set<AnyCancellable> = []
+
+    init(session: WebcardFolderWindowSession) {
+        self.session = session
+        super.init()
+
+        session.browserModel.$navigationPath
+            .sink { [weak self] _ in
+                self?.updateNavigationItems()
+            }
+            .store(in: &cancellables)
+
+        session.$searchText
+            .removeDuplicates()
+            .sink { [weak self] searchText in
+                guard self?.searchField?.stringValue != searchText else {
+                    return
+                }
+                self?.searchField?.stringValue = searchText
+            }
+            .store(in: &cancellables)
+
+        WebcardFolderSettings.shared.$isDirectoryDrawerVisible
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.rebuildToolbarItems()
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    func makeToolbar(tracking splitView: NSSplitView?) -> NSToolbar {
+        trackedSplitView = splitView
+        let toolbar = NSToolbar(identifier: "webcard.folder-toolbar")
+        toolbar.delegate = self
+        toolbar.displayMode = .iconOnly
+        toolbar.sizeMode = .regular
+        toolbar.allowsUserCustomization = false
+        toolbar.autosavesConfiguration = false
+        self.toolbar = toolbar
+        return toolbar
+    }
+
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        if WebcardFolderSettings.shared.isDirectoryDrawerVisible {
+            return [
+                .flexibleSpace,
+                .webcardSidebarToggle,
+                trackedSplitView == nil ? .sidebarTrackingSeparator : .webcardSidebarSeparator,
+                .webcardBack,
+                .webcardForward,
+                .webcardFolderTitle,
+                .flexibleSpace,
+                .webcardSearch,
+                .webcardAdd
+            ]
+        }
+        return [
+            .webcardSidebarToggle,
+            .webcardBack,
+            .webcardForward,
+            .webcardFolderTitle,
+            .flexibleSpace,
+            .webcardSearch,
+            .webcardAdd
+        ]
+    }
+
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        toolbarDefaultItemIdentifiers(toolbar)
+    }
+
+    func toolbar(
+        _ toolbar: NSToolbar,
+        itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
+        willBeInsertedIntoToolbar flag: Bool
+    ) -> NSToolbarItem? {
+        switch itemIdentifier {
+        case .webcardSidebarToggle:
+            return buttonItem(
+                identifier: itemIdentifier,
+                label: "Toggle Sidebar",
+                systemImage: "sidebar.left",
+                action: #selector(toggleSidebar)
+            )
+        case .webcardSidebarSeparator:
+            guard let trackedSplitView else {
+                return nil
+            }
+            return NSTrackingSeparatorToolbarItem(
+                identifier: itemIdentifier,
+                splitView: trackedSplitView,
+                dividerIndex: 0
+            )
+        case .webcardBack:
+            return buttonItem(
+                identifier: itemIdentifier,
+                label: "Back",
+                systemImage: "chevron.left",
+                action: #selector(goBack)
+            )
+        case .webcardForward:
+            return buttonItem(
+                identifier: itemIdentifier,
+                label: "Forward",
+                systemImage: "chevron.right",
+                action: #selector(goForward)
+            )
+        case .webcardFolderTitle:
+            let item = NSToolbarItem(itemIdentifier: itemIdentifier)
+            let titleLabel = NSTextField(labelWithString: session.browserModel.currentURL.lastPathComponent)
+            titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .semibold)
+            titleLabel.lineBreakMode = .byTruncatingTail
+            titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+            item.view = titleLabel
+            item.label = "Current Folder"
+            item.visibilityPriority = .high
+            self.titleLabel = titleLabel
+            return item
+        case .webcardSearch:
+            let item = NSSearchToolbarItem(itemIdentifier: itemIdentifier)
+            let searchField = NSSearchField()
+            searchField.placeholderString = "Search webcards"
+            searchField.stringValue = session.searchText
+            searchField.target = self
+            searchField.action = #selector(searchChanged)
+            searchField.sendsSearchStringImmediately = true
+            item.searchField = searchField
+            item.preferredWidthForSearchField = 280
+            item.visibilityPriority = .high
+            self.searchField = searchField
+            return item
+        case .webcardAdd:
+            let item = buttonItem(
+                identifier: itemIdentifier,
+                label: "Add Webcard",
+                systemImage: "plus",
+                action: #selector(addWebcard)
+            )
+            item.visibilityPriority = .high
+            return item
+        default:
+            return nil
+        }
+    }
+
+    func validateToolbarItem(_ item: NSToolbarItem) -> Bool {
+        switch item.itemIdentifier {
+        case .webcardBack:
+            return session.browserModel.canGoBack
+        case .webcardForward:
+            return false
+        default:
+            return true
+        }
+    }
+
+    private func buttonItem(
+        identifier: NSToolbarItem.Identifier,
+        label: String,
+        systemImage: String,
+        action: Selector
+    ) -> NSToolbarItem {
+        let item = NSToolbarItem(itemIdentifier: identifier)
+        item.label = label
+        item.paletteLabel = label
+        item.toolTip = label
+        item.image = NSImage(systemSymbolName: systemImage, accessibilityDescription: label)
+        item.target = self
+        item.action = action
+        return item
+    }
+
+    private func updateNavigationItems() {
+        titleLabel?.stringValue = session.browserModel.currentURL.lastPathComponent
+        toolbar?.validateVisibleItems()
+    }
+
+    private func rebuildToolbarItems() {
+        guard let toolbar else {
+            return
+        }
+        for index in toolbar.items.indices.reversed() {
+            toolbar.removeItem(at: index)
+        }
+        for (index, identifier) in toolbarDefaultItemIdentifiers(toolbar).enumerated() {
+            toolbar.insertItem(withItemIdentifier: identifier, at: index)
+        }
+    }
+
+    @objc private func toggleSidebar() {
+        WebcardFolderSettings.shared.isDirectoryDrawerVisible.toggle()
+    }
+
+    @objc private func goBack() {
+        session.browserModel.goBack()
+    }
+
+    @objc private func goForward() {}
+
+    @objc private func searchChanged(_ sender: NSSearchField) {
+        session.searchText = sender.stringValue
+    }
+
+    @objc private func addWebcard() {
+        session.addWebcard()
     }
 }
