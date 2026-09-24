@@ -24,7 +24,7 @@ macOS 14 or later and Xcode 16 or later.
 
 ```sh
 GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all swift test
-GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all xcodebuild -project 2026-09-23-Webcard.xcodeproj -target Webcard -configuration Debug SYMROOT="$PWD/.build/xcode-target" OBJROOT="$PWD/.build/xcode-target/obj" ONLY_ACTIVE_ARCH=YES ARCHS=arm64 CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual build
+GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all xcodebuild -project Webcard.xcodeproj -target Webcard -configuration Debug SYMROOT="$PWD/.build/xcode-target" OBJROOT="$PWD/.build/xcode-target/obj" ONLY_ACTIVE_ARCH=YES ARCHS=arm64 CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual build
 ```
 
 ## Open the app

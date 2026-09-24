@@ -90,7 +90,7 @@ GIT_CONFIG_KEY_0=safe.bareRepository \
 GIT_CONFIG_VALUE_0=all \
 xcodebuild \
     -quiet \
-    -project 2026-09-23-Webcard.xcodeproj \
+    -project Webcard.xcodeproj \
     -target Webcard \
     -configuration Debug \
     SYMROOT="${repository_root}/.build/xcode-target" \

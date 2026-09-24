@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "2026-09-23-Webcard",
+    name: "Webcard",
     platforms: [
         .macOS(.v14)
     ],
