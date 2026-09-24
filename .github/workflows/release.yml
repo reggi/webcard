@@ -1,0 +1,66 @@
+name: Release Assets
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Existing release tag to package
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to package
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-assets-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-14
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Validate semantic version tag
+        run: |
+          printf '%s\n' "$RELEASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+
+      - name: Build release artifact
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: ./scripts/package-release.sh "$RELEASE_TAG"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Webcard-${{ env.RELEASE_TAG }}-macOS-universal
+          path: |
+            dist/Webcard-*-macOS-universal.zip
+            dist/Webcard-*-macOS-universal.zip.sha256
+          if-no-files-found: error
+
+      - name: Upload downloadable release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=${RELEASE_TAG#v}
+          ARTIFACT="dist/Webcard-$VERSION-macOS-universal.zip"
+          gh release upload "$RELEASE_TAG" \
+            "$ARTIFACT" \
+            "$ARTIFACT.sha256" \
+            --clobber

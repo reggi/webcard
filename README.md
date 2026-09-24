@@ -41,10 +41,22 @@ Agents should finish app changes with one command:
 WEBCARD_INSTALL_OWNER="agent or task name" ./scripts/reinstall-app.sh
 ```
 
-The script runs the tests, rebuilds the app, safely replaces `/Applications/Webcard.app`, and opens the installed build. It holds a machine-wide per-user lock for the entire procedure. If another agent is already running it, the command exits with details about the lock owner instead of allowing concurrent builds or installations.
+The script runs the tests, rebuilds the app, installs it, and opens the installed build. The `main` worktree safely replaces `/Applications/Webcard.app`. Every other worktree automatically installs an isolated build at `~/Applications/Webcard Worktrees/<worktree>/Webcard.app`, gives it a distinct display name and bundle identifier, and leaves the main app untouched. Each destination has its own machine-wide per-user lock, so different worktrees can build and install concurrently while agents targeting the same destination receive details about the current lock owner.
 
-To intentionally use another destination, set an absolute path ending in `Webcard.app`:
+To intentionally override the selected destination, set an absolute path ending in `Webcard.app`:
 
 ```sh
 WEBCARD_INSTALL_PATH="$HOME/Applications/Webcard.app" ./scripts/reinstall-app.sh
 ```
+
+To test an isolated named build from the `main` worktree, set a variant:
+
+```sh
+WEBCARD_INSTALL_VARIANT="experiment" ./scripts/reinstall-app.sh
+```
+
+## Releases
+
+Pushes to `main` run Release Please, which maintains a release pull request from Conventional Commit history. Merging that pull request creates a semantic version tag and GitHub release, then builds `Webcard-<version>-macOS-universal.zip` with its SHA-256 checksum. Both files are available from the workflow run, and the release assets are downloadable from the GitHub release.
+
+To rebuild assets for an existing tag, run the **Release Assets** workflow manually and provide a tag such as `v0.2.0`.
