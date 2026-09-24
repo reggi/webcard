@@ -330,6 +330,41 @@ struct WebcardArchiveTests {
     }
 
     @Test
+    func parsesBulkImportListsAndSkipsExactDuplicates() {
+        let batch = WebcardBulkImportBatch.parse(
+            """
+            example.com/one
+
+            https://example.org/two
+            not a url
+            example.com/one
+            """
+        )
+
+        #expect(batch.plans.map(\.preferredURL) == [
+            URL(string: "https://example.com/one")!,
+            URL(string: "https://example.org/two")!
+        ])
+        #expect(batch.invalidInputs == ["not a url"])
+        #expect(batch.duplicateCount == 1)
+    }
+
+    @Test
+    func rateLimitsRepeatedDomainsIndependently() async throws {
+        let limiter = WebcardDomainRateLimiter(minimumInterval: .milliseconds(80))
+        let clock = ContinuousClock()
+        let example = URL(string: "https://example.com/one")!
+        let other = URL(string: "https://example.org/two")!
+
+        try await limiter.wait(for: example)
+        try await limiter.wait(for: other)
+
+        let repeatedDomainStart = clock.now
+        try await limiter.wait(for: example)
+        #expect(repeatedDomainStart.duration(to: clock.now) >= .milliseconds(40))
+    }
+
+    @Test
     func updatesLastRefreshWithoutAddingCapture() {
         let image = Data("image".utf8)
         let capture = WebcardCapture(

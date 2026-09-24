@@ -42,6 +42,68 @@ public enum WebcardAddress {
     }
 }
 
+public struct WebcardBulkImportBatch: Sendable, Equatable {
+    public let plans: [WebcardRequestPlan]
+    public let invalidInputs: [String]
+    public let duplicateCount: Int
+
+    public static func parse(_ input: String) -> WebcardBulkImportBatch {
+        var plans: [WebcardRequestPlan] = []
+        var invalidInputs: [String] = []
+        var seenURLs: Set<String> = []
+        var duplicateCount = 0
+
+        for line in input.components(separatedBy: .newlines) {
+            let value = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !value.isEmpty else {
+                continue
+            }
+            guard let plan = WebcardAddress.requestPlan(from: value) else {
+                invalidInputs.append(value)
+                continue
+            }
+            let key = plan.preferredURL.absoluteString
+            guard seenURLs.insert(key).inserted else {
+                duplicateCount += 1
+                continue
+            }
+            plans.append(plan)
+        }
+
+        return WebcardBulkImportBatch(
+            plans: plans,
+            invalidInputs: invalidInputs,
+            duplicateCount: duplicateCount
+        )
+    }
+}
+
+public actor WebcardDomainRateLimiter {
+    public static let defaultMinimumInterval: Duration = .seconds(8)
+
+    private let minimumInterval: Duration
+    private let clock = ContinuousClock()
+    private var lastStartByDomain: [String: ContinuousClock.Instant] = [:]
+
+    public init(minimumInterval: Duration = defaultMinimumInterval) {
+        self.minimumInterval = minimumInterval
+    }
+
+    public func wait(for url: URL) async throws {
+        guard let domain = url.host()?.lowercased(), !domain.isEmpty else {
+            return
+        }
+
+        if let previousStart = lastStartByDomain[domain] {
+            let elapsed = previousStart.duration(to: clock.now)
+            if elapsed < minimumInterval {
+                try await clock.sleep(for: minimumInterval - elapsed)
+            }
+        }
+        lastStartByDomain[domain] = clock.now
+    }
+}
+
 private extension WebcardRequestPlan {
     init(preferredURL: URL, fallbackURL: URL?) {
         self.preferredURL = preferredURL

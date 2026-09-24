@@ -2,7 +2,7 @@
 
 Webcard is a native macOS document app for creating, opening, refreshing, and versioning `.webcard` files.
 
-When Webcard opens without a document, it displays only the app start window, with no blank Untitled document alongside it. Enter a public website address there to create a webcard, choose **Choose File or Folder** to open saved webcards, or drag a `.webcard` file or folder of webcards onto the drop area. **File > Create Webcard** returns to the same app start window instead of opening a separate empty document.
+When Webcard opens without a document, it displays only the app start window, with no blank Untitled document alongside it. Enter a public website address there to create a webcard, choose **Choose File or Folder** to open saved webcards, or drag a `.webcard` file or folder of webcards onto the drop area. **File > Create Webcard** returns to the same app start window instead of opening a separate empty document. Use **File > Import URLs** to paste one public URL per line and save many webcards into a chosen folder. Bulk imports run one capture at a time and wait at least eight seconds before starting another capture for the same domain.
 
 Each document window displays one saved card and defaults to a 550 by 550 point window when macOS does not have a restored user size. Use the macOS **Card** menu for **Refresh** (Command-R), **Truncate Text**, and **Versions**. These commands affect the active document window; the window has no control footer or app toolbar. Refresh status appears in the window subtitle. Changed metadata or image content becomes a new dated capture in the document, which can then be saved normally.
 
@@ -41,10 +41,16 @@ Agents should finish app changes with one command:
 WEBCARD_INSTALL_OWNER="agent or task name" ./scripts/reinstall-app.sh
 ```
 
-The script runs the tests, rebuilds the app, safely replaces `/Applications/Webcard.app`, and opens the installed build. It holds a machine-wide per-user lock for the entire procedure. If another agent is already running it, the command exits with details about the lock owner instead of allowing concurrent builds or installations.
+The script runs the tests, rebuilds the app, installs it, and opens the installed build. The `main` worktree safely replaces `/Applications/Webcard.app`. Every other worktree automatically installs an isolated build at `~/Applications/Webcard Worktrees/<worktree>/Webcard.app`, gives it a distinct display name, bundle identifier, and visibly badged app icon, and leaves the main app untouched. Each destination has its own machine-wide per-user lock, so different worktrees can build and install concurrently while agents targeting the same destination receive details about the current lock owner.
 
-To intentionally use another destination, set an absolute path ending in `Webcard.app`:
+To intentionally override the selected destination, set an absolute path ending in `Webcard.app`:
 
 ```sh
 WEBCARD_INSTALL_PATH="$HOME/Applications/Webcard.app" ./scripts/reinstall-app.sh
+```
+
+To test an isolated named build from the `main` worktree, set a variant:
+
+```sh
+WEBCARD_INSTALL_VARIANT="experiment" ./scripts/reinstall-app.sh
 ```
