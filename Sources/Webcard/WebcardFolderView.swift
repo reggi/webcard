@@ -987,8 +987,6 @@ struct WebcardFolderView: View {
     @ObservedObject private var folderSettings = WebcardFolderSettings.shared
     @StateObject private var browserModel: WebcardFolderBrowserModel
     @State private var searchText = ""
-    @State private var isAddingCard = false
-    @State private var isCreatingCard = false
     @State private var pendingScrollURL: URL?
 
     private let spacing: CGFloat = 20
@@ -1107,37 +1105,18 @@ struct WebcardFolderView: View {
                 }
 
                 Button {
-                    isAddingCard.toggle()
-                } label: {
-                    Label(
-                        isAddingCard ? "Cancel" : "Add Webcard",
-                        systemImage: isAddingCard ? "xmark" : "plus"
-                    )
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isCreatingCard)
-            }
-
-            if isAddingCard {
-                WebcardCreationPanel(
-                    isCreating: $isCreatingCard,
-                    showsInstructions: false,
-                    createWebcard: { file in
-                        try WebcardFolderFileWriter.write(
-                            file,
-                            to: browserModel.currentURL
-                        )
-                    },
-                    onCreated: { fileURL in
-                        guard let fileURL else {
-                            return
-                        }
+                    WebcardAppDelegate.shared?.showAddWebcardWindow(
+                        destinationDirectory: browserModel.currentURL
+                    ) { fileURL in
                         searchText = ""
                         pendingScrollURL = fileURL
-                        isAddingCard = false
                         browserModel.refresh()
                     }
-                )
+                } label: {
+                    Label("Add Webcard", systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+                .webcardPointingHandCursor()
             }
 
             HStack(spacing: 10) {

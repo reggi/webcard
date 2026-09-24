@@ -3,11 +3,27 @@ import SwiftUI
 import UniformTypeIdentifiers
 import WebcardCore
 
+private struct WebcardPointingHandCursor: ViewModifier {
+    func body(content: Content) -> some View {
+        content.onHover { isHovering in
+            (isHovering ? NSCursor.pointingHand : NSCursor.arrow).set()
+        }
+    }
+}
+
+extension View {
+    func webcardPointingHandCursor() -> some View {
+        modifier(WebcardPointingHandCursor())
+    }
+}
+
 @MainActor
 final class WebcardAppDelegate: NSObject, NSApplicationDelegate {
     static private(set) weak var shared: WebcardAppDelegate?
 
     private var welcomeWindowController: WebcardWelcomeWindowController?
+    private var bulkImportWindowController: WebcardBulkImportWindowController?
+    private var addWebcardWindowController: WebcardAddWindowController?
     private var openedItemsAtLaunch = false
 
     override init() {
@@ -81,6 +97,9 @@ final class WebcardAppDelegate: NSObject, NSApplicationDelegate {
                 try WebcardOpenRouter.createDocument(file)
                 self?.welcomeWindowController?.close()
             },
+            importURLs: { [weak self] in
+                self?.showBulkImportWindow()
+            },
             selectItems: { [weak self] in
                 guard let urls = WebcardOpenPanel.selectItems() else {
                     return
@@ -94,6 +113,48 @@ final class WebcardAppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         welcomeWindowController = controller
+        controller.showWindow(nil)
+        controller.window?.makeKeyAndOrderFront(nil)
+    }
+
+    func showBulkImportWindow(destinationDirectory: URL? = nil) {
+        if let bulkImportWindowController,
+           destinationDirectory == nil
+                || bulkImportWindowController.destinationDirectory == destinationDirectory {
+            bulkImportWindowController.showWindow(nil)
+            bulkImportWindowController.window?.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        bulkImportWindowController?.close()
+        let controller = WebcardBulkImportWindowController(
+            destinationDirectory: destinationDirectory
+        )
+        bulkImportWindowController = controller
+        controller.showWindow(nil)
+        controller.window?.makeKeyAndOrderFront(nil)
+    }
+
+    func showAddWebcardWindow(
+        destinationDirectory: URL,
+        onCreated: @escaping (URL) -> Void
+    ) {
+        addWebcardWindowController?.close()
+
+        let controller = WebcardAddWindowController(
+            destinationDirectory: destinationDirectory,
+            importURLs: { [weak self] in
+                self?.addWebcardWindowController?.close()
+                self?.addWebcardWindowController = nil
+                self?.showBulkImportWindow(destinationDirectory: destinationDirectory)
+            },
+            onCreated: { [weak self] fileURL in
+                self?.addWebcardWindowController?.close()
+                self?.addWebcardWindowController = nil
+                onCreated(fileURL)
+            }
+        )
+        addWebcardWindowController = controller
         controller.showWindow(nil)
         controller.window?.makeKeyAndOrderFront(nil)
     }
@@ -192,12 +253,13 @@ enum WebcardOpenRouter {
 private final class WebcardWelcomeWindowController: NSWindowController {
     init(
         createWebcard: @escaping (WebcardFile) throws -> Void,
+        importURLs: @escaping () -> Void,
         selectItems: @escaping () -> Void,
         openItems: @escaping ([URL]) -> Void
     ) {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 680, height: 480),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 690),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
@@ -205,12 +267,13 @@ private final class WebcardWelcomeWindowController: NSWindowController {
         window.contentViewController = NSHostingController(
             rootView: WebcardWelcomeView(
                 createWebcard: createWebcard,
+                importURLs: importURLs,
                 selectItems: selectItems,
                 openItems: openItems
             )
         )
-        window.setContentSize(NSSize(width: 680, height: 480))
-        window.contentMinSize = NSSize(width: 560, height: 430)
+        window.setContentSize(NSSize(width: 820, height: 690))
+        window.contentMinSize = NSSize(width: 700, height: 620)
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
         window.center()
@@ -226,6 +289,7 @@ private final class WebcardWelcomeWindowController: NSWindowController {
 
 private struct WebcardWelcomeView: View {
     let createWebcard: (WebcardFile) throws -> Void
+    let importURLs: () -> Void
     let selectItems: () -> Void
     let openItems: ([URL]) -> Void
 
@@ -237,73 +301,102 @@ private struct WebcardWelcomeView: View {
             Text("Webcard")
                 .font(.largeTitle.weight(.semibold))
 
-            openingActions
-            WebcardCreationPanel(
-                isCreating: $isCreating,
-                showsInstructions: true
-            ) { file in
-                try createWebcard(file)
-                return nil
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: 16),
+                    GridItem(.flexible(), spacing: 16)
+                ],
+                spacing: 16
+            ) {
+                createFromURLCard
+                importManyURLsCard
+                openItemsCard
+                dropItemsCard
             }
         }
         .padding(32)
-        .frame(minWidth: 560, idealWidth: 680, minHeight: 430, idealHeight: 480)
+        .frame(minWidth: 700, idealWidth: 820, minHeight: 620, idealHeight: 690)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .dropDestination(for: URL.self) { urls, _ in
+            guard !isCreating, !urls.isEmpty else {
+                return false
+            }
+            openItems(urls)
+            return true
+        } isTargeted: { targeted in
+            isDropTargeted = targeted
+        }
     }
 
-    private var openingActions: some View {
-        HStack(spacing: 16) {
-            welcomeAction(
-                title: "Open a Webcard or Folder",
-                detail: "Choose a .webcard file or a folder of webcards.",
-                systemImage: "folder"
+    private var createFromURLCard: some View {
+        welcomeAction(
+            title: "Create from URL",
+            detail: "Paste a link to generate a webcard with its title, description, and image.",
+            systemImage: "link",
+            iconColor: .blue
+        ) {
+            WebcardCreationPanel(
+                isCreating: $isCreating,
+                showsInstructions: false,
+                isEmbedded: true,
+                stacksControls: true
             ) {
-                Button("Choose File or Folder", action: selectItems)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .keyboardShortcut("o")
+                try createWebcard($0)
+                return nil
             }
+        }
+    }
 
-            VStack(spacing: 10) {
-                Image(systemName: "square.and.arrow.down")
-                    .font(.system(size: 32))
+    private var importManyURLsCard: some View {
+        welcomeAction(
+            title: "Import URLs",
+            detail: "Paste a list of website addresses and create cards slowly with per-domain rate limiting.",
+            systemImage: "text.badge.plus",
+            iconColor: .purple
+        ) {
+            Button(action: importURLs) {
+                Label("Import URLs", systemImage: "text.badge.plus")
+            }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+                .webcardPointingHandCursor()
+        }
+        .disabled(isCreating)
+        .opacity(isCreating ? 0.45 : 1)
+    }
 
-                Text("Drag and Drop a Webcard or Folder")
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
+    private var openItemsCard: some View {
+        welcomeAction(
+            title: "Open a File or Folder",
+            detail: "Choose a .webcard file or a folder containing multiple cards.",
+            systemImage: "doc",
+            iconColor: .orange
+        ) {
+            Button("Choose File or Folder…", action: selectItems)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .keyboardShortcut("o")
+                .frame(maxWidth: .infinity)
+                .webcardPointingHandCursor()
+        }
+        .disabled(isCreating)
+        .opacity(isCreating ? 0.45 : 1)
+    }
 
-                Text("Drop a .webcard file or a folder of webcards.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(18)
-            .frame(maxWidth: .infinity, minHeight: 180)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(
-                        isDropTargeted
-                            ? Color.accentColor.opacity(0.14)
-                            : Color.secondary.opacity(0.08)
-                    )
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(
-                        isDropTargeted ? Color.accentColor : Color.secondary.opacity(0.45),
-                        style: StrokeStyle(lineWidth: isDropTargeted ? 2 : 1, dash: [7])
-                    )
-            }
-            .dropDestination(for: URL.self) { urls, _ in
-                guard !urls.isEmpty else {
-                    return false
-                }
-                openItems(urls)
-                return true
-            } isTargeted: { targeted in
-                isDropTargeted = targeted
-            }
+    private var dropItemsCard: some View {
+        welcomeAction(
+            title: "Drag and Drop",
+            detail: "Drop a .webcard file or a folder of webcards here.",
+            systemImage: "square.and.arrow.down",
+            iconColor: .green,
+            isActive: isDropTargeted,
+            isDashed: true
+        ) {
+            Text("Drop Here")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
         }
         .disabled(isCreating)
         .opacity(isCreating ? 0.45 : 1)
@@ -313,39 +406,196 @@ private struct WebcardWelcomeView: View {
         title: String,
         detail: String,
         systemImage: String,
+        iconColor: Color,
+        isActive: Bool = false,
+        isDashed: Bool = false,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Image(systemName: systemImage)
-                .font(.system(size: 32))
-                .foregroundStyle(.tint)
+                .font(.system(size: 26, weight: .medium))
+                .foregroundStyle(Color.white)
+                .frame(width: 54, height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(iconColor)
+                )
 
             Text(title)
-                .font(.headline)
-                .multilineTextAlignment(.center)
+                .font(.title3.weight(.semibold))
 
             Text(detail)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 0)
             content()
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 180)
+        .padding(20)
+        .frame(maxWidth: .infinity, minHeight: 250, maxHeight: 250, alignment: .topLeading)
         .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.secondary.opacity(0.08))
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    isActive
+                        ? Color.accentColor.opacity(0.12)
+                        : Color.secondary.opacity(0.08)
+                )
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                    isActive ? Color.accentColor : Color.secondary.opacity(0.32),
+                    style: StrokeStyle(
+                        lineWidth: isActive ? 2 : 1,
+                        dash: isDashed ? [8] : []
+                    )
+                )
+        }
+    }
+}
+
+@MainActor
+private final class WebcardAddWindowController: NSWindowController {
+    init(
+        destinationDirectory: URL,
+        importURLs: @escaping () -> Void,
+        onCreated: @escaping (URL) -> Void
+    ) {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 420),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Add Webcard"
+        window.contentViewController = NSHostingController(
+            rootView: WebcardAddOptionsView(
+                destinationDirectory: destinationDirectory,
+                importURLs: importURLs,
+                onCreated: onCreated
+            )
+        )
+        window.contentMinSize = NSSize(width: 700, height: 390)
+        window.isReleasedWhenClosed = false
+        window.tabbingMode = .disallowed
+        window.center()
+        super.init(window: window)
     }
 
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
+private struct WebcardAddOptionsView: View {
+    let destinationDirectory: URL
+    let importURLs: () -> Void
+    let onCreated: (URL) -> Void
+
+    @State private var isCreating = false
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Text("Add Webcard")
+                .font(.largeTitle.weight(.semibold))
+
+            HStack(spacing: 16) {
+                optionCard(
+                    title: "Create from URL",
+                    detail: "Paste a link to generate a webcard with its title, description, and image.",
+                    systemImage: "link",
+                    iconColor: .blue
+                ) {
+                    WebcardCreationPanel(
+                        isCreating: $isCreating,
+                        showsInstructions: false,
+                        isEmbedded: true,
+                        stacksControls: true,
+                        createWebcard: { file in
+                            try WebcardFolderFileWriter.write(
+                                file,
+                                to: destinationDirectory
+                            )
+                        },
+                        onCreated: { fileURL in
+                            if let fileURL {
+                                onCreated(fileURL)
+                            }
+                        }
+                    )
+                }
+
+                optionCard(
+                    title: "Import URLs",
+                    detail: "Paste a list of website addresses and create cards slowly with per-domain rate limiting.",
+                    systemImage: "text.badge.plus",
+                    iconColor: .purple
+                ) {
+                    Button(action: importURLs) {
+                        Label("Import URLs", systemImage: "text.badge.plus")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+                    .webcardPointingHandCursor()
+                }
+                .disabled(isCreating)
+                .opacity(isCreating ? 0.45 : 1)
+            }
+        }
+        .padding(32)
+        .frame(minWidth: 700, idealWidth: 820, minHeight: 390, idealHeight: 420)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func optionCard<Content: View>(
+        title: String,
+        detail: String,
+        systemImage: String,
+        iconColor: Color,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 26, weight: .medium))
+                .foregroundStyle(Color.white)
+                .frame(width: 54, height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(iconColor)
+                )
+
+            Text(title)
+                .font(.title3.weight(.semibold))
+
+            Text(detail)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+            content()
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, minHeight: 250, maxHeight: 250, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.secondary.opacity(0.08))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.secondary.opacity(0.32), lineWidth: 1)
+        }
+    }
 }
 
 struct WebcardCreationPanel: View {
     @Binding var isCreating: Bool
     let showsInstructions: Bool
+    let isEmbedded: Bool
+    let stacksControls: Bool
     let createWebcard: (WebcardFile) throws -> URL?
     var onCreated: (URL?) -> Void = { _ in }
 
@@ -363,15 +613,18 @@ struct WebcardCreationPanel: View {
                 createForm
             }
         }
-        .padding(showsInstructions ? 18 : 12)
+        .padding(isEmbedded ? 0 : showsInstructions ? 18 : 12)
         .frame(maxWidth: .infinity, minHeight: showsInstructions ? 150 : nil)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(panelColor)
+                .fill(isEmbedded ? Color.clear : panelColor)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 14)
-                .stroke(panelBorderColor, lineWidth: isCreating || errorMessage != nil ? 2 : 1)
+                .stroke(
+                    isEmbedded ? Color.clear : panelBorderColor,
+                    lineWidth: isCreating || errorMessage != nil ? 2 : 1
+                )
         }
         .animation(.easeInOut(duration: 0.2), value: isCreating)
         .animation(.easeInOut(duration: 0.2), value: errorMessage)
@@ -432,9 +685,13 @@ struct WebcardCreationPanel: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            HStack(spacing: 10) {
+            let layout = stacksControls
+                ? AnyLayout(VStackLayout(spacing: 10))
+                : AnyLayout(HStackLayout(spacing: 10))
+            layout {
                 TextField("example.com or https://example.com", text: $address)
                     .textFieldStyle(.roundedBorder)
+                    .controlSize(.large)
                     .onSubmit(create)
                     .onChange(of: address) {
                         errorMessage = nil
@@ -445,6 +702,8 @@ struct WebcardCreationPanel: View {
                     .controlSize(.large)
                     .keyboardShortcut(.defaultAction)
                     .disabled(requestPlan == nil)
+                    .frame(maxWidth: stacksControls ? .infinity : nil)
+                    .webcardPointingHandCursor()
             }
         }
         .transition(.opacity.combined(with: .scale(scale: 0.97)))
@@ -497,6 +756,238 @@ struct WebcardCreationPanel: View {
             } catch {
                 errorMessage = error.localizedDescription
                 isCreating = false
+            }
+        }
+    }
+}
+
+@MainActor
+private final class WebcardBulkImportWindowController: NSWindowController {
+    let destinationDirectory: URL?
+
+    init(destinationDirectory: URL?) {
+        self.destinationDirectory = destinationDirectory
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 680, height: 560),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Import URLs"
+        window.contentViewController = NSHostingController(
+            rootView: WebcardBulkImportView(destinationDirectory: destinationDirectory)
+        )
+        window.contentMinSize = NSSize(width: 560, height: 460)
+        window.isReleasedWhenClosed = false
+        window.tabbingMode = .disallowed
+        window.center()
+        super.init(window: window)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
+private struct WebcardBulkImportFailure: Identifiable {
+    let id = UUID()
+    let address: String
+    let message: String
+}
+
+private struct WebcardBulkImportView: View {
+    @State var destinationDirectory: URL?
+    @State private var input = ""
+    @State private var isImporting = false
+    @State private var completedCount = 0
+    @State private var currentAddress: String?
+    @State private var failures: [WebcardBulkImportFailure] = []
+    @State private var importTask: Task<Void, Never>?
+
+    private var batch: WebcardBulkImportBatch {
+        WebcardBulkImportBatch.parse(input)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Import URLs")
+                .font(.title2.weight(.semibold))
+
+            Text("Paste one public website address per line. Imports run one at a time, with at least eight seconds between captures started for the same domain.")
+                .foregroundStyle(.secondary)
+
+            TextEditor(text: $input)
+                .font(.body.monospaced())
+                .scrollContentBackground(.hidden)
+                .padding(8)
+                .background(Color.secondary.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.secondary.opacity(0.25))
+                }
+                .disabled(isImporting)
+
+            destinationRow
+            validationSummary
+
+            if isImporting || completedCount > 0 || !failures.isEmpty {
+                importStatus
+            }
+
+            HStack {
+                Spacer()
+                if isImporting {
+                    Button("Cancel", role: .cancel) {
+                        importTask?.cancel()
+                    }
+                    .webcardPointingHandCursor()
+                }
+                Button(isImporting ? "Importing…" : "Import URLs", action: startImport)
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(isImporting || destinationDirectory == nil || batch.plans.isEmpty)
+                    .webcardPointingHandCursor()
+            }
+        }
+        .padding(24)
+        .frame(minWidth: 560, idealWidth: 680, minHeight: 460, idealHeight: 560)
+        .onDisappear {
+            importTask?.cancel()
+        }
+    }
+
+    private var destinationRow: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "folder")
+                .foregroundStyle(.secondary)
+            Text(destinationDirectory?.path(percentEncoded: false) ?? "Choose a destination folder")
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .foregroundStyle(destinationDirectory == nil ? .secondary : .primary)
+            Spacer()
+            Button("Choose Folder…", action: chooseDestination)
+                .disabled(isImporting)
+                .webcardPointingHandCursor()
+        }
+    }
+
+    @ViewBuilder
+    private var validationSummary: some View {
+        let parsedBatch = batch
+        if !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            HStack(spacing: 12) {
+                Text("\(parsedBatch.plans.count) valid URL\(parsedBatch.plans.count == 1 ? "" : "s")")
+                if parsedBatch.duplicateCount > 0 {
+                    Text("\(parsedBatch.duplicateCount) duplicate\(parsedBatch.duplicateCount == 1 ? "" : "s") skipped")
+                }
+                if !parsedBatch.invalidInputs.isEmpty {
+                    Text("\(parsedBatch.invalidInputs.count) invalid")
+                        .foregroundStyle(.red)
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private var importStatus: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if isImporting {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Imported \(completedCount) of \(batch.plans.count)")
+                    if let currentAddress {
+                        Text(currentAddress)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            } else {
+                Text("Imported \(completedCount) webcard\(completedCount == 1 ? "" : "s").")
+                    .font(.headline)
+            }
+
+            if !failures.isEmpty {
+                DisclosureGroup("\(failures.count) failed") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(failures) { failure in
+                            Text("\(failure.address): \(failure.message)")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+            }
+        }
+    }
+
+    private func chooseDestination() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose Import Destination"
+        panel.prompt = "Choose"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        if panel.runModal() == .OK {
+            destinationDirectory = panel.url?.standardizedFileURL
+        }
+    }
+
+    private func startImport() {
+        let parsedBatch = batch
+        guard let destinationDirectory, !parsedBatch.plans.isEmpty, !isImporting else {
+            return
+        }
+
+        isImporting = true
+        completedCount = 0
+        failures = parsedBatch.invalidInputs.map {
+            WebcardBulkImportFailure(address: $0, message: "Invalid HTTP or HTTPS address.")
+        }
+        let plans = parsedBatch.plans
+        let hasSecurityScopedAccess = destinationDirectory.startAccessingSecurityScopedResource()
+
+        importTask = Task {
+            defer {
+                if hasSecurityScopedAccess {
+                    destinationDirectory.stopAccessingSecurityScopedResource()
+                }
+                isImporting = false
+                currentAddress = nil
+                importTask = nil
+            }
+
+            let refresher = WebcardRefresher()
+            let rateLimiter = WebcardDomainRateLimiter()
+            for plan in plans {
+                guard !Task.isCancelled else {
+                    return
+                }
+                currentAddress = plan.preferredURL.absoluteString
+                do {
+                    try await rateLimiter.wait(for: plan.preferredURL)
+                    let result = try await refresher.capture(plan: plan)
+                    let file = WebcardFile(
+                        sourceURL: result.sourceURL,
+                        captures: [result.capture]
+                    )
+                    _ = try WebcardFolderFileWriter.write(file, to: destinationDirectory)
+                    completedCount += 1
+                } catch is CancellationError {
+                    return
+                } catch {
+                    failures.append(
+                        WebcardBulkImportFailure(
+                            address: plan.preferredURL.absoluteString,
+                            message: error.localizedDescription
+                        )
+                    )
+                }
             }
         }
     }

@@ -496,6 +496,46 @@ final class WebcardFolderViewTests: XCTestCase {
         XCTAssertEqual(destination.lastPathComponent, "Example 2.webcard")
     }
 
+    func testFolderWriterKeepsBothBulkItemsWhenTitlesGenerateTheSameFilename() throws {
+        let root = try makeTemporaryDirectory()
+        defer { try? fileManager.removeItem(at: root) }
+        let imageData = Data("shared image".utf8)
+
+        func file(path: String, captureID: String) -> WebcardFile {
+            let sourceURL = URL(string: "https://example.com/\(path)")!
+            let capture = WebcardCapture(
+                id: captureID,
+                canonicalURL: sourceURL,
+                title: "Shared Title",
+                summary: path,
+                siteName: "Example",
+                imageSHA256: WebcardArchive.sha256(imageData),
+                capturedAt: Date(timeIntervalSince1970: 0),
+                imageData: imageData
+            )
+            return WebcardFile(
+                sourceURL: sourceURL,
+                captures: [capture],
+                currentCaptureID: capture.id
+            )
+        }
+
+        let first = try WebcardFolderFileWriter.write(
+            file(path: "first", captureID: "first"),
+            to: root
+        )
+        let second = try WebcardFolderFileWriter.write(
+            file(path: "second", captureID: "second"),
+            to: root
+        )
+
+        XCTAssertEqual(first.lastPathComponent, "shared-title.webcard")
+        XCTAssertEqual(second.lastPathComponent, "shared-title 2.webcard")
+        XCTAssertNotEqual(first, second)
+        XCTAssertTrue(fileManager.fileExists(atPath: first.path))
+        XCTAssertTrue(fileManager.fileExists(atPath: second.path))
+    }
+
     func testImmediateEnumerationDoesNotWalkNestedDirectories() async throws {
         let root = try makeTemporaryDirectory()
         defer { try? fileManager.removeItem(at: root) }
