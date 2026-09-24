@@ -10,38 +10,11 @@ function DownloadIcon() {
   );
 }
 
-function FolderIcon() {
+function Screenshot({ src, alt, className = "" }) {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-9Z" />
-    </svg>
-  );
-}
-
-function RefreshIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="M19 8a8 8 0 1 0 .7 7.2M19 4v4h-4" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7.5V12l3 2" />
-    </svg>
-  );
-}
-
-function Feature({ icon, title, children }) {
-  return (
-    <article className="feature">
-      <div className="feature-icon">{icon}</div>
-      <h2>{title}</h2>
-      <p>{children}</p>
-    </article>
+    <div className={`screenshot-frame ${className}`}>
+      <img src={src} alt={alt} loading="lazy" />
+    </div>
   );
 }
 
@@ -53,23 +26,26 @@ export default function App() {
           <img src="./app-icon.png" alt="" />
           <span>Webcard</span>
         </a>
-        <a className="nav-download" href={release.downloadUrl}>
-          Download
-        </a>
+        <div className="nav-links">
+          <a href={repositoryUrl}>GitHub</a>
+          <a className="nav-download" href={release.downloadUrl}>
+            Download
+          </a>
+        </div>
       </nav>
 
       <section className="hero" id="top">
-        <div className="ambient ambient-one" />
-        <div className="ambient ambient-two" />
+        <div className="hero-glow hero-glow-one" />
+        <div className="hero-glow hero-glow-two" />
         <div className="hero-copy">
           <div className="eyebrow">
-            <span className="apple-mark">●</span>
-            Built for macOS
+            <span />
+            Native macOS app
           </div>
-          <h1>Keep the web cards worth saving.</h1>
+          <h1>Save the web as files you own.</h1>
           <p className="hero-description">
-            Webcard turns rich website previews into portable files you can open,
-            organize, refresh, and revisit on your Mac.
+            Webcard turns rich website previews into portable <code>.webcard</code>{" "}
+            files you can open, organize, refresh, and keep on your Mac.
           </p>
           <div className="hero-actions">
             <a className="download-button" href={release.downloadUrl}>
@@ -80,56 +56,105 @@ export default function App() {
           </div>
         </div>
 
-        <div className="app-showcase" aria-label="Webcard app preview">
-          <div className="app-icon-wrap">
-            <img src="./app-icon.png" alt="Webcard app icon" />
-          </div>
-          <div className="window">
-            <div className="titlebar">
-              <div className="traffic-lights">
-                <span />
-                <span />
-                <span />
-              </div>
-              <span className="window-title">Webcard</span>
-            </div>
-            <div className="window-content">
-              <div className="saved-card">
-                <div className="card-image">
-                  <span className="card-orbit orbit-one" />
-                  <span className="card-orbit orbit-two" />
-                  <img src="./app-icon.png" alt="" />
-                </div>
-                <div className="card-copy">
-                  <span className="site-label">WEBCARD</span>
-                  <strong>Your favorite corner of the web</strong>
-                  <p>Saved with its image, details, and history ready whenever you need it.</p>
-                  <span className="fake-link">webcard.app</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        <Screenshot
+          className="hero-screenshot"
+          src="./screenshots/directory-overview.webp"
+          alt="Webcard showing a directory of saved website cards"
+        />
+      </section>
+
+      <section className="file-story">
+        <div className="section-copy">
+          <span className="section-label">One link. One file.</span>
+          <h2>Every card stands on its own.</h2>
+          <p>
+            A webcard keeps its image, title, description, URL, and capture
+            history together in one portable file.
+          </p>
+        </div>
+        <div className="card-wall" aria-label="Examples of individual webcards">
+          <Screenshot
+            className="card-shot card-shot-one"
+            src="./screenshots/card-unsplash.webp"
+            alt="An Unsplash page saved as a single webcard"
+          />
+          <Screenshot
+            className="card-shot card-shot-two"
+            src="./screenshots/card-city-hall.webp"
+            alt="An Atlas Obscura page saved as a single webcard"
+          />
+          <Screenshot
+            className="card-shot card-shot-three"
+            src="./screenshots/card-command-module.webp"
+            alt="A Smithsonian page saved as a single webcard"
+          />
         </div>
       </section>
 
-      <section className="features" aria-labelledby="features-title">
-        <div className="section-heading">
-          <span>Made for your Mac</span>
-          <h2 id="features-title">A home for every webcard.</h2>
+      <section className="library-story">
+        <div className="section-copy centered">
+          <span className="section-label">Folders become libraries</span>
+          <h2>Browse your collection without giving up the filesystem.</h2>
+          <p>
+            Open any folder of webcards to search, browse nested folders, and
+            switch naturally between compact and expansive layouts.
+          </p>
         </div>
-        <div className="feature-grid">
-          <Feature icon={<FolderIcon />} title="Files you own">
-            Each webcard is a portable file. Keep it in Finder, move it into a
-            folder, or share it like any other document.
-          </Feature>
-          <Feature icon={<RefreshIcon />} title="Refresh on demand">
-            Update a saved card only when you choose. Webcard never changes your
-            files or contacts a site in the background.
-          </Feature>
-          <Feature icon={<ClockIcon />} title="Built in history">
-            Keep dated captures together and return to an earlier version without
-            losing what came before.
-          </Feature>
+        <div className="library-stack">
+          <Screenshot
+            className="library-shot library-shot-back"
+            src="./screenshots/directory-code-food.webp"
+            alt="A Webcard directory showing code and food collections"
+          />
+          <Screenshot
+            className="library-shot library-shot-front"
+            src="./screenshots/directory-birds.webp"
+            alt="A Webcard directory showing a collection of bird cards"
+          />
+        </div>
+      </section>
+
+      <section className="native-story">
+        <div className="native-copy">
+          <span className="section-label">Native all the way through</span>
+          <h2>Your cards belong in Finder.</h2>
+          <p>
+            Custom file icons and previews make every webcard recognizable
+            before you open it. Move, rename, group, and back up your collection
+            like any other files on your Mac.
+          </p>
+          <ul>
+            <li>Custom file icons</li>
+            <li>Finder thumbnails</li>
+            <li>Quick Look previews</li>
+          </ul>
+        </div>
+        <div className="finder-shots">
+          <Screenshot
+            src="./screenshots/finder-icons.webp"
+            alt="Webcard files displayed with image thumbnails in Finder"
+          />
+          <Screenshot
+            className="finder-list"
+            src="./screenshots/finder-list.webp"
+            alt="Webcard files displayed in Finder list view"
+          />
+        </div>
+      </section>
+
+      <section className="start-story">
+        <Screenshot
+          className="start-screenshot"
+          src="./screenshots/start-screen.webp"
+          alt="The Webcard start screen with options to create, import, open, or drop files"
+        />
+        <div className="start-copy">
+          <span className="section-label">Start anywhere</span>
+          <h2>Create one card or import a whole list.</h2>
+          <p>
+            Paste a URL, import several addresses, open an existing folder, or
+            drag files directly into the app.
+          </p>
         </div>
       </section>
 
@@ -137,11 +162,11 @@ export default function App() {
         <img src="./app-icon.png" alt="" />
         <div>
           <span>Webcard for macOS</span>
-          <h2>Save the web as a file.</h2>
+          <h2>Keep the web cards worth saving.</h2>
         </div>
         <a className="download-button light" href={release.downloadUrl}>
           <DownloadIcon />
-          Latest release
+          Download latest release
         </a>
       </section>
 
