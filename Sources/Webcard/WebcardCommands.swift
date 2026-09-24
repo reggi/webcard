@@ -84,6 +84,11 @@ struct WebcardFolderCommands: Commands {
             }
             .keyboardShortcut("n")
 
+            Button("Import URLs…") {
+                WebcardAppDelegate.shared?.showBulkImportWindow()
+            }
+            .keyboardShortcut("i", modifiers: [.command, .shift])
+
             Button("Open…") {
                 presentOpenPanel()
             }

@@ -636,60 +636,6 @@ final class WebcardFolderCommandCenter: ObservableObject {
     }
 }
 
-enum WebcardFuzzySearch {
-    static func score(query: String, in values: [String]) -> Int? {
-        let terms = query
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .split(whereSeparator: \.isWhitespace)
-            .map(String.init)
-        guard !terms.isEmpty else {
-            return 0
-        }
-
-        let candidates = values.map {
-            $0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-        }
-        var total = 0
-        for term in terms {
-            guard let best = candidates.compactMap({ score(term: term, in: $0) }).max() else {
-                return nil
-            }
-            total += best
-        }
-        return total
-    }
-
-    private static func score(term: String, in candidate: String) -> Int? {
-        if candidate == term {
-            return 1_000
-        }
-        if candidate.hasPrefix(term) {
-            return 900 - candidate.count
-        }
-        if let range = candidate.range(of: term) {
-            return 800 - candidate.distance(from: candidate.startIndex, to: range.lowerBound)
-        }
-
-        var searchIndex = candidate.startIndex
-        var firstMatch: String.Index?
-        var previousMatch: String.Index?
-        var gaps = 0
-        for character in term {
-            guard let match = candidate[searchIndex...].firstIndex(of: character) else {
-                return nil
-            }
-            firstMatch = firstMatch ?? match
-            if let previousMatch {
-                gaps += max(0, candidate.distance(from: previousMatch, to: match) - 1)
-            }
-            previousMatch = match
-            searchIndex = candidate.index(after: match)
-        }
-        let start = firstMatch.map { candidate.distance(from: candidate.startIndex, to: $0) } ?? 0
-        return 500 - gaps * 4 - start
-    }
-}
-
 enum WebcardFolderFileWriter {
     static func write(
         _ file: WebcardFile,
@@ -1041,8 +987,6 @@ struct WebcardFolderView: View {
     @ObservedObject private var folderSettings = WebcardFolderSettings.shared
     @StateObject private var browserModel: WebcardFolderBrowserModel
     @State private var searchText = ""
-    @State private var isAddingCard = false
-    @State private var isCreatingCard = false
     @State private var pendingScrollURL: URL?
 
     private let spacing: CGFloat = 20
@@ -1066,6 +1010,10 @@ struct WebcardFolderView: View {
             return []
         }
         return flattenWebcards(in: visibleHierarchy)
+    }
+
+    private var hasSearchQuery: Bool {
+        !WebcardSearch.isEmpty(searchText)
     }
 
     var body: some View {
@@ -1098,7 +1046,7 @@ struct WebcardFolderView: View {
                                 : "No webcards have been discovered yet. The bounded scan was incomplete."
                         )
                     )
-                } else if visibleHierarchy == nil, !searchText.isEmpty {
+                } else if visibleHierarchy == nil, hasSearchQuery {
                     ContentUnavailableView.search(text: searchText)
                 } else {
                     gallery
@@ -1157,43 +1105,56 @@ struct WebcardFolderView: View {
                 }
 
                 Button {
-                    isAddingCard.toggle()
-                } label: {
-                    Label(
-                        isAddingCard ? "Cancel" : "Add Webcard",
-                        systemImage: isAddingCard ? "xmark" : "plus"
-                    )
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isCreatingCard)
-            }
-
-            if isAddingCard {
-                WebcardCreationPanel(
-                    isCreating: $isCreatingCard,
-                    showsInstructions: false,
-                    createWebcard: { file in
-                        try WebcardFolderFileWriter.write(
-                            file,
-                            to: browserModel.currentURL
-                        )
-                    },
-                    onCreated: { fileURL in
-                        guard let fileURL else {
-                            return
-                        }
+                    WebcardAppDelegate.shared?.showAddWebcardWindow(
+                        destinationDirectory: browserModel.currentURL
+                    ) { fileURL in
                         searchText = ""
                         pendingScrollURL = fileURL
-                        isAddingCard = false
                         browserModel.refresh()
                     }
-                )
+                } label: {
+                    Label("Add Webcard", systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+                .webcardPointingHandCursor()
             }
 
-            HStack(spacing: 16) {
-                TextField("Search webcards", text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(minWidth: 220, maxWidth: 420)
+            HStack(spacing: 10) {
+                HStack(spacing: 7) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField(
+                        "Search titles, URLs, descriptions, and metadata",
+                        text: $searchText
+                    )
+                    .textFieldStyle(.plain)
+                    if hasSearchQuery {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Clear Search")
+                        .accessibilityLabel("Clear Search")
+                    }
+                }
+                .padding(.horizontal, 9)
+                .padding(.vertical, 6)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 7))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 7)
+                        .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
+                }
+                .frame(minWidth: 280, maxWidth: 520)
+
+                if hasSearchQuery {
+                    Text(searchResultLabel)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
 
                 Spacer()
             }
@@ -1669,6 +1630,11 @@ struct WebcardFolderView: View {
         WebcardFolderCountFormatter.label(for: node)
     }
 
+    private var searchResultLabel: String {
+        let count = allVisibleItems.count
+        return "\(count) \(count == 1 ? "result" : "results")"
+    }
+
     private func flattenWebcards(
         in node: WebcardDirectoryNode
     ) -> [WebcardFolderItem] {
@@ -1680,7 +1646,10 @@ struct WebcardFolderView: View {
     private func sorted(
         _ items: [WebcardFolderItem]
     ) -> [WebcardFolderItem] {
-        items.sorted {
+        if hasSearchQuery {
+            return items
+        }
+        return items.sorted {
             $0.fileURL.lastPathComponent.localizedStandardCompare(
                 $1.fileURL.lastPathComponent
             ) == .orderedAscending
