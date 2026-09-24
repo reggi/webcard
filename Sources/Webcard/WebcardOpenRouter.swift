@@ -117,8 +117,12 @@ final class WebcardAppDelegate: NSObject, NSApplicationDelegate {
         controller.window?.makeKeyAndOrderFront(nil)
     }
 
-    func showBulkImportWindow(destinationDirectory: URL? = nil) {
+    func showBulkImportWindow(
+        destinationDirectory: URL? = nil,
+        initialInput: String = ""
+    ) {
         if let bulkImportWindowController,
+           initialInput.isEmpty,
            destinationDirectory == nil
                 || bulkImportWindowController.destinationDirectory == destinationDirectory {
             bulkImportWindowController.showWindow(nil)
@@ -128,7 +132,13 @@ final class WebcardAppDelegate: NSObject, NSApplicationDelegate {
 
         bulkImportWindowController?.close()
         let controller = WebcardBulkImportWindowController(
-            destinationDirectory: destinationDirectory
+            destinationDirectory: destinationDirectory,
+            initialInput: initialInput,
+            onFinished: { [weak self] destinationDirectory in
+                self?.bulkImportWindowController?.close()
+                self?.bulkImportWindowController = nil
+                WebcardOpenRouter.open(destinationDirectory)
+            }
         )
         bulkImportWindowController = controller
         controller.showWindow(nil)
@@ -163,6 +173,7 @@ final class WebcardAppDelegate: NSObject, NSApplicationDelegate {
 @MainActor
 enum WebcardOpenRouter {
     private static var folderWindows: [URL: WebcardFolderWindowController] = [:]
+    private static var webLocationWindows: [URL: WebcardWebLocationWindowController] = [:]
 
     static func createDocument(_ file: WebcardFile) throws {
         let fileType = UTType.webcard.identifier
@@ -196,17 +207,48 @@ enum WebcardOpenRouter {
 
     static func open(_ url: URL) {
         do {
+            if !url.isFileURL,
+               let scheme = url.scheme?.lowercased(),
+               scheme == "http" || scheme == "https" {
+                WebcardAppDelegate.shared?.showBulkImportWindow(
+                    initialInput: url.absoluteString
+                )
+                return
+            }
+
             let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isRegularFileKey])
             if values.isDirectory == true {
                 openFolder(url)
-            } else if values.isRegularFile == true && url.pathExtension.lowercased() == "webcard" {
-                openDocument(url)
+            } else if values.isRegularFile == true {
+                switch url.pathExtension.lowercased() {
+                case "webcard":
+                    openDocument(url)
+                case "webloc":
+                    let hasAccess = url.startAccessingSecurityScopedResource()
+                    defer {
+                        if hasAccess {
+                            url.stopAccessingSecurityScopedResource()
+                        }
+                    }
+                    let webLocationURL = try WebcardWebloc.read(
+                        Data(contentsOf: url, options: .mappedIfSafe)
+                    )
+                    openWebLocation(url, webLocationURL: webLocationURL)
+                default:
+                    throw CocoaError(
+                        .fileReadUnsupportedScheme,
+                        userInfo: [
+                            NSLocalizedDescriptionKey:
+                                "Choose a .webcard or .webloc file, or a folder containing them."
+                        ]
+                    )
+                }
             } else {
                 throw CocoaError(
                     .fileReadUnsupportedScheme,
                     userInfo: [
                         NSLocalizedDescriptionKey:
-                            "Choose a .webcard file or a folder containing webcards."
+                            "Choose a .webcard or .webloc file, or a folder containing them."
                     ]
                 )
             }
@@ -239,6 +281,27 @@ enum WebcardOpenRouter {
             folderWindows[standardizedURL] = nil
         }
         folderWindows[standardizedURL] = controller
+        NSApp.activate(ignoringOtherApps: true)
+        controller.showWindow(nil)
+        controller.window?.makeKeyAndOrderFront(nil)
+    }
+
+    private static func openWebLocation(_ fileURL: URL, webLocationURL: URL) {
+        let standardizedURL = fileURL.standardizedFileURL
+        if let controller = webLocationWindows[standardizedURL] {
+            NSApp.activate(ignoringOtherApps: true)
+            controller.showWindow(nil)
+            controller.window?.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        let controller = WebcardWebLocationWindowController(
+            fileURL: standardizedURL,
+            webLocationURL: webLocationURL
+        ) {
+            webLocationWindows[standardizedURL] = nil
+        }
+        webLocationWindows[standardizedURL] = controller
         NSApp.activate(ignoringOtherApps: true)
         controller.showWindow(nil)
         controller.window?.makeKeyAndOrderFront(nil)
@@ -287,6 +350,54 @@ private final class WebcardWelcomeWindowController: NSWindowController {
     }
 }
 
+final class WebcardDroppedFileLoader: @unchecked Sendable {
+    private let providers: [NSItemProvider]
+    private let completion: @MainActor ([URL]) -> Void
+    private var index = 0
+    private var urls: [URL] = []
+
+    private init(
+        providers: [NSItemProvider],
+        completion: @escaping @MainActor ([URL]) -> Void
+    ) {
+        self.providers = providers
+        self.completion = completion
+    }
+
+    @MainActor
+    static func load(
+        _ providers: [NSItemProvider],
+        completion: @escaping @MainActor ([URL]) -> Void
+    ) {
+        WebcardDroppedFileLoader(
+            providers: providers,
+            completion: completion
+        ).loadNext()
+    }
+
+    private func loadNext() {
+        guard index < providers.count else {
+            let urls = urls
+            Task { @MainActor in
+                completion(urls)
+            }
+            return
+        }
+
+        let provider = providers[index]
+        index += 1
+        provider.loadDataRepresentation(
+            forTypeIdentifier: UTType.fileURL.identifier
+        ) { [self] data, _ in
+            if let data,
+               let url = URL(dataRepresentation: data, relativeTo: nil) {
+                urls.append(url)
+            }
+            loadNext()
+        }
+    }
+}
+
 private struct WebcardWelcomeView: View {
     let createWebcard: (WebcardFile) throws -> Void
     let importURLs: () -> Void
@@ -313,18 +424,25 @@ private struct WebcardWelcomeView: View {
                 openItemsCard
                 dropItemsCard
             }
+
         }
         .padding(32)
         .frame(minWidth: 700, idealWidth: 820, minHeight: 620, idealHeight: 690)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .dropDestination(for: URL.self) { urls, _ in
-            guard !isCreating, !urls.isEmpty else {
+        .onDrop(
+            of: [UTType.fileURL.identifier],
+            isTargeted: $isDropTargeted
+        ) { providers in
+            guard !isCreating, !providers.isEmpty else {
                 return false
             }
-            openItems(urls)
+            WebcardDroppedFileLoader.load(providers) { urls in
+                guard !urls.isEmpty else {
+                    return
+                }
+                openItems(urls)
+            }
             return true
-        } isTargeted: { targeted in
-            isDropTargeted = targeted
         }
     }
 
@@ -369,7 +487,7 @@ private struct WebcardWelcomeView: View {
     private var openItemsCard: some View {
         welcomeAction(
             title: "Open a File or Folder",
-            detail: "Choose a .webcard file or a folder containing multiple cards.",
+            detail: "Choose a .webcard or .webloc file, or a folder containing multiple cards.",
             systemImage: "doc",
             iconColor: .orange
         ) {
@@ -387,7 +505,7 @@ private struct WebcardWelcomeView: View {
     private var dropItemsCard: some View {
         welcomeAction(
             title: "Drag and Drop",
-            detail: "Drop a .webcard file or a folder of webcards here.",
+            detail: "Drop a .webcard, .webloc, website URL, or folder here.",
             systemImage: "square.and.arrow.down",
             iconColor: .green,
             isActive: isDropTargeted,
@@ -765,7 +883,11 @@ struct WebcardCreationPanel: View {
 private final class WebcardBulkImportWindowController: NSWindowController {
     let destinationDirectory: URL?
 
-    init(destinationDirectory: URL?) {
+    init(
+        destinationDirectory: URL?,
+        initialInput: String = "",
+        onFinished: @escaping @MainActor (URL) -> Void
+    ) {
         self.destinationDirectory = destinationDirectory
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 680, height: 560),
@@ -775,7 +897,11 @@ private final class WebcardBulkImportWindowController: NSWindowController {
         )
         window.title = "Import URLs"
         window.contentViewController = NSHostingController(
-            rootView: WebcardBulkImportView(destinationDirectory: destinationDirectory)
+            rootView: WebcardBulkImportView(
+                destinationDirectory: destinationDirectory,
+                initialInput: initialInput,
+                onFinished: onFinished
+            )
         )
         window.contentMinSize = NSSize(width: 560, height: 460)
         window.isReleasedWhenClosed = false
@@ -797,8 +923,10 @@ private struct WebcardBulkImportFailure: Identifiable {
 }
 
 private struct WebcardBulkImportView: View {
+    let onFinished: @MainActor (URL) -> Void
+
     @State var destinationDirectory: URL?
-    @State private var input = ""
+    @State private var input: String
     @State private var isImporting = false
     @State private var completedCount = 0
     @State private var currentAddress: String?
@@ -807,6 +935,16 @@ private struct WebcardBulkImportView: View {
 
     private var batch: WebcardBulkImportBatch {
         WebcardBulkImportBatch.parse(input)
+    }
+
+    init(
+        destinationDirectory: URL?,
+        initialInput: String = "",
+        onFinished: @escaping @MainActor (URL) -> Void
+    ) {
+        self.onFinished = onFinished
+        _destinationDirectory = State(initialValue: destinationDirectory)
+        _input = State(initialValue: initialInput)
     }
 
     var body: some View {
@@ -953,6 +1091,7 @@ private struct WebcardBulkImportView: View {
         let hasSecurityScopedAccess = destinationDirectory.startAccessingSecurityScopedResource()
 
         importTask = Task {
+            var completedNormally = false
             defer {
                 if hasSecurityScopedAccess {
                     destinationDirectory.stopAccessingSecurityScopedResource()
@@ -960,6 +1099,9 @@ private struct WebcardBulkImportView: View {
                 isImporting = false
                 currentAddress = nil
                 importTask = nil
+                if completedNormally {
+                    onFinished(destinationDirectory)
+                }
             }
 
             let refresher = WebcardRefresher()
@@ -981,14 +1123,24 @@ private struct WebcardBulkImportView: View {
                 } catch is CancellationError {
                     return
                 } catch {
+                    var message = error.localizedDescription
+                    do {
+                        _ = try WebcardFolderFileWriter.writeWebloc(
+                            for: plan.preferredURL,
+                            to: destinationDirectory
+                        )
+                    } catch {
+                        message += " The .webloc fallback could not be saved: \(error.localizedDescription)"
+                    }
                     failures.append(
                         WebcardBulkImportFailure(
                             address: plan.preferredURL.absoluteString,
-                            message: error.localizedDescription
+                            message: message
                         )
                     )
                 }
             }
+            completedNormally = true
         }
     }
 }
@@ -1038,7 +1190,10 @@ enum WebcardOpenPanel {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.allowedContentTypes = [.webcard]
+        panel.allowedContentTypes = [
+            .webcard,
+            UTType(filenameExtension: "webloc")
+        ].compactMap { $0 }
         return panel.runModal() == .OK ? panel.urls : nil
     }
 }
@@ -1092,5 +1247,54 @@ private final class WebcardFolderWindowController: NSWindowController, NSWindowD
 
     func windowDidResignKey(_ notification: Notification) {
         WebcardFolderCommandCenter.shared.deactivate(id: commandID)
+    }
+}
+
+@MainActor
+private final class WebcardWebLocationWindowController: NSWindowController, NSWindowDelegate {
+    private let fileURL: URL
+    private let hasSecurityScopedAccess: Bool
+    private let onClose: () -> Void
+
+    init(
+        fileURL: URL,
+        webLocationURL: URL,
+        onClose: @escaping () -> Void
+    ) {
+        self.fileURL = fileURL
+        hasSecurityScopedAccess = fileURL.startAccessingSecurityScopedResource()
+        self.onClose = onClose
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 550, height: 550),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = fileURL.deletingPathExtension().lastPathComponent
+        window.contentViewController = NSHostingController(
+            rootView: WebcardWebLocationDocumentView(
+                fileURL: fileURL,
+                url: webLocationURL
+            )
+        )
+        window.minSize = NSSize(width: 360, height: 420)
+        window.tabbingMode = .preferred
+        window.center()
+
+        super.init(window: window)
+        window.delegate = self
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        if hasSecurityScopedAccess {
+            fileURL.stopAccessingSecurityScopedResource()
+        }
+        onClose()
     }
 }
