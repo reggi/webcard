@@ -1,0 +1,535 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A00000000000000000000001 /* WebcardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* WebcardApp.swift */; };
+		A00000000000000000000002 /* WebcardDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* WebcardDocumentView.swift */; };
+		A00000000000000000000003 /* ThumbnailProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* ThumbnailProvider.swift */; };
+		A00000000000000000000004 /* PreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* PreviewViewController.swift */; };
+		A00000000000000000000005 /* WebcardCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000001 /* WebcardCore */; };
+		A00000000000000000000006 /* WebcardCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000002 /* WebcardCore */; };
+		A00000000000000000000007 /* WebcardCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000003 /* WebcardCore */; };
+		A00000000000000000000008 /* WebcardThumbnail.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008 /* WebcardThumbnail.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A00000000000000000000009 /* WebcardPreview.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009 /* WebcardPreview.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A0000000000000000000000A /* SelectableMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000E /* SelectableMetadataView.swift */; };
+		A0000000000000000000000B /* LayoutDebugPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000F /* LayoutDebugPanel.swift */; };
+		A0000000000000000000000C /* LayoutDebugCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010 /* LayoutDebugCapture.swift */; };
+		A0000000000000000000000D /* WebcardCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* WebcardCommands.swift */; };
+		A0000000000000000000000E /* MetadataWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* MetadataWindow.swift */; };
+		A0000000000000000000000F /* SelectableMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000E /* SelectableMetadataView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A20000000000000000000001 = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A30000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000002;
+			remoteInfo = WebcardThumbnail;
+		};
+		A20000000000000000000002 = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A30000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000003;
+			remoteInfo = WebcardPreview;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A40000000000000000000001 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A00000000000000000000008 /* WebcardThumbnail.appex in Embed App Extensions */,
+				A00000000000000000000009 /* WebcardPreview.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A10000000000000000000001 /* WebcardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcardApp.swift; sourceTree = "<group>"; };
+		A10000000000000000000002 /* WebcardDocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcardDocumentView.swift; sourceTree = "<group>"; };
+		A10000000000000000000003 /* ThumbnailProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailProvider.swift; sourceTree = "<group>"; };
+		A10000000000000000000004 /* PreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewViewController.swift; sourceTree = "<group>"; };
+		A10000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000008 /* WebcardThumbnail.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WebcardThumbnail.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000009 /* WebcardPreview.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WebcardPreview.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000000000000000000000A /* Webcard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Webcard.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000000000000000000000B /* Webcard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Webcard.entitlements; sourceTree = "<group>"; };
+		A1000000000000000000000C /* WebcardThumbnail.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WebcardThumbnail.entitlements; sourceTree = "<group>"; };
+		A1000000000000000000000D /* WebcardPreview.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WebcardPreview.entitlements; sourceTree = "<group>"; };
+		A1000000000000000000000E /* SelectableMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectableMetadataView.swift; sourceTree = "<group>"; };
+		A1000000000000000000000F /* LayoutDebugPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutDebugPanel.swift; sourceTree = "<group>"; };
+		A10000000000000000000010 /* LayoutDebugCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutDebugCapture.swift; sourceTree = "<group>"; };
+		A10000000000000000000011 /* WebcardCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcardCommands.swift; sourceTree = "<group>"; };
+		A10000000000000000000012 /* MetadataWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataWindow.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A60000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000005 /* WebcardCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A60000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000006 /* WebcardCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A60000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000007 /* WebcardCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A70000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A70000000000000000000002 /* Webcard */,
+				A70000000000000000000003 /* WebcardThumbnail */,
+				A70000000000000000000004 /* WebcardPreview */,
+				A70000000000000000000005 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A70000000000000000000002 /* Webcard */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000001 /* WebcardApp.swift */,
+				A10000000000000000000002 /* WebcardDocumentView.swift */,
+				A1000000000000000000000E /* SelectableMetadataView.swift */,
+				A1000000000000000000000F /* LayoutDebugPanel.swift */,
+				A10000000000000000000010 /* LayoutDebugCapture.swift */,
+				A10000000000000000000011 /* WebcardCommands.swift */,
+				A10000000000000000000012 /* MetadataWindow.swift */,
+				A10000000000000000000005 /* Info.plist */,
+				A1000000000000000000000B /* Webcard.entitlements */,
+			);
+			path = Sources/Webcard;
+			sourceTree = "<group>";
+		};
+		A70000000000000000000003 /* WebcardThumbnail */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000003 /* ThumbnailProvider.swift */,
+				A10000000000000000000006 /* Info.plist */,
+				A1000000000000000000000C /* WebcardThumbnail.entitlements */,
+			);
+			path = Extensions/WebcardThumbnail;
+			sourceTree = "<group>";
+		};
+		A70000000000000000000004 /* WebcardPreview */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000004 /* PreviewViewController.swift */,
+				A10000000000000000000007 /* Info.plist */,
+				A1000000000000000000000D /* WebcardPreview.entitlements */,
+			);
+			path = Extensions/WebcardPreview;
+			sourceTree = "<group>";
+		};
+		A70000000000000000000005 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000000A /* Webcard.app */,
+				A10000000000000000000008 /* WebcardThumbnail.appex */,
+				A10000000000000000000009 /* WebcardPreview.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A50000000000000000000001 /* Webcard */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A80000000000000000000002 /* Build configuration list for PBXNativeTarget "Webcard" */;
+			buildPhases = (
+				A90000000000000000000001 /* Sources */,
+				A60000000000000000000001 /* Frameworks */,
+				A40000000000000000000001 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AB0000000000000000000001 /* PBXTargetDependency */,
+				AB0000000000000000000002 /* PBXTargetDependency */,
+			);
+			name = Webcard;
+			packageProductDependencies = (
+				AA0000000000000000000001 /* WebcardCore */,
+			);
+			productName = Webcard;
+			productReference = A1000000000000000000000A /* Webcard.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A50000000000000000000002 /* WebcardThumbnail */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A80000000000000000000003 /* Build configuration list for PBXNativeTarget "WebcardThumbnail" */;
+			buildPhases = (
+				A90000000000000000000002 /* Sources */,
+				A60000000000000000000002 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WebcardThumbnail;
+			packageProductDependencies = (
+				AA0000000000000000000002 /* WebcardCore */,
+			);
+			productName = WebcardThumbnail;
+			productReference = A10000000000000000000008 /* WebcardThumbnail.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		A50000000000000000000003 /* WebcardPreview */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A80000000000000000000004 /* Build configuration list for PBXNativeTarget "WebcardPreview" */;
+			buildPhases = (
+				A90000000000000000000003 /* Sources */,
+				A60000000000000000000003 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WebcardPreview;
+			packageProductDependencies = (
+				AA0000000000000000000003 /* WebcardCore */,
+			);
+			productName = WebcardPreview;
+			productReference = A10000000000000000000009 /* WebcardPreview.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A30000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					A50000000000000000000001 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					A50000000000000000000002 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					A50000000000000000000003 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+				};
+			};
+			buildConfigurationList = A80000000000000000000001 /* Build configuration list for PBXProject "2026-09-23-Webcard" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A70000000000000000000001;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AC0000000000000000000001 /* XCLocalSwiftPackageReference "." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A70000000000000000000005 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A50000000000000000000001 /* Webcard */,
+				A50000000000000000000002 /* WebcardThumbnail */,
+				A50000000000000000000003 /* WebcardPreview */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A90000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000001 /* WebcardApp.swift in Sources */,
+				A00000000000000000000002 /* WebcardDocumentView.swift in Sources */,
+				A0000000000000000000000A /* SelectableMetadataView.swift in Sources */,
+				A0000000000000000000000B /* LayoutDebugPanel.swift in Sources */,
+				A0000000000000000000000C /* LayoutDebugCapture.swift in Sources */,
+				A0000000000000000000000D /* WebcardCommands.swift in Sources */,
+				A0000000000000000000000E /* MetadataWindow.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A90000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000003 /* ThumbnailProvider.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A90000000000000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000004 /* PreviewViewController.swift in Sources */,
+				A0000000000000000000000F /* SelectableMetadataView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AB0000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50000000000000000000002 /* WebcardThumbnail */;
+			targetProxy = A20000000000000000000001;
+		};
+		AB0000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50000000000000000000003 /* WebcardPreview */;
+			targetProxy = A20000000000000000000002;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		AD0000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		AD0000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		AD0000000000000000000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Sources/Webcard/Webcard.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Webcard/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.reggi.webcard;
+				PRODUCT_NAME = Webcard;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		AD0000000000000000000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Sources/Webcard/Webcard.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Webcard/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.reggi.webcard;
+				PRODUCT_NAME = Webcard;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		AD0000000000000000000021 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Extensions/WebcardThumbnail/WebcardThumbnail.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Extensions/WebcardThumbnail/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.reggi.webcard.thumbnail;
+				PRODUCT_NAME = WebcardThumbnail;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		AD0000000000000000000022 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Extensions/WebcardThumbnail/WebcardThumbnail.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Extensions/WebcardThumbnail/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.reggi.webcard.thumbnail;
+				PRODUCT_NAME = WebcardThumbnail;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		AD0000000000000000000031 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Extensions/WebcardPreview/WebcardPreview.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Extensions/WebcardPreview/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.reggi.webcard.preview;
+				PRODUCT_NAME = WebcardPreview;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		AD0000000000000000000032 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Extensions/WebcardPreview/WebcardPreview.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Extensions/WebcardPreview/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.reggi.webcard.preview;
+				PRODUCT_NAME = WebcardPreview;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A80000000000000000000001 /* Build configuration list for PBXProject "2026-09-23-Webcard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AD0000000000000000000001 /* Debug */,
+				AD0000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A80000000000000000000002 /* Build configuration list for PBXNativeTarget "Webcard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AD0000000000000000000011 /* Debug */,
+				AD0000000000000000000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A80000000000000000000003 /* Build configuration list for PBXNativeTarget "WebcardThumbnail" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AD0000000000000000000021 /* Debug */,
+				AD0000000000000000000022 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A80000000000000000000004 /* Build configuration list for PBXNativeTarget "WebcardPreview" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AD0000000000000000000031 /* Debug */,
+				AD0000000000000000000032 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		AC0000000000000000000001 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AA0000000000000000000001 /* WebcardCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AC0000000000000000000001 /* XCLocalSwiftPackageReference "." */;
+			productName = WebcardCore;
+		};
+		AA0000000000000000000002 /* WebcardCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AC0000000000000000000001 /* XCLocalSwiftPackageReference "." */;
+			productName = WebcardCore;
+		};
+		AA0000000000000000000003 /* WebcardCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AC0000000000000000000001 /* XCLocalSwiftPackageReference "." */;
+			productName = WebcardCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A30000000000000000000001 /* Project object */;
+}

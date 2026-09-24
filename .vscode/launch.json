@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:webcard}",
+      "name": "Debug Webcard",
+      "target": "Webcard",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug Webcard"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:webcard}",
+      "name": "Release Webcard",
+      "target": "Webcard",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release Webcard"
+    }
+  ]
+}
