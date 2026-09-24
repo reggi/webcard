@@ -41,7 +41,7 @@ Agents should finish app changes with one command:
 WEBCARD_INSTALL_OWNER="agent or task name" ./scripts/reinstall-app.sh
 ```
 
-The script runs the tests, rebuilds the app, installs it, and opens the installed build. The `main` worktree safely replaces `/Applications/Webcard.app`. Every other worktree automatically installs an isolated build at `~/Applications/Webcard Worktrees/<worktree>/Webcard.app`, gives it a distinct display name and bundle identifier, and leaves the main app untouched. Each destination has its own machine-wide per-user lock, so different worktrees can build and install concurrently while agents targeting the same destination receive details about the current lock owner.
+The script runs the tests, rebuilds the app, installs it, and opens the installed build. The `main` worktree safely replaces `/Applications/Webcard.app`. Every other worktree automatically installs an isolated build at `~/Applications/Webcard Worktrees/<worktree>/Webcard.app`, gives it a distinct display name, bundle identifier, and visibly badged app icon, and leaves the main app untouched. Each destination has its own machine-wide per-user lock, so different worktrees can build and install concurrently while agents targeting the same destination receive details about the current lock owner.
 
 To intentionally override the selected destination, set an absolute path ending in `Webcard.app`:
 

@@ -32,6 +32,18 @@ if [[ "${is_variant}" == true ]]; then
     destination="${WEBCARD_INSTALL_PATH:-${HOME}/Applications/Webcard Worktrees/${variant}/Webcard.app}"
     bundle_identifier="com.reggi.webcard.dev.${bundle_variant}"
     display_name="Webcard (${variant})"
+    IFS='._-' read -r -a variant_parts <<< "${variant}"
+    if [[ "${#variant_parts[@]}" -gt 1 ]]; then
+        badge_label=""
+        for part in "${variant_parts[@]}"; do
+            if [[ -n "${part}" ]]; then
+                badge_label+="${part:0:1}"
+            fi
+        done
+    else
+        badge_label="${variant:0:4}"
+    fi
+    badge_label="$(printf '%s' "${badge_label}" | tr '[:lower:]' '[:upper:]')"
 else
     destination="${WEBCARD_INSTALL_PATH:-/Applications/Webcard.app}"
     bundle_identifier="com.reggi.webcard"
@@ -166,6 +178,19 @@ if [[ "${is_variant}" == true ]]; then
         "${staging_app}/Contents/PlugIns/WebcardThumbnail.appex/Contents/Info.plist"
     "${plist_buddy}" -c "Set :CFBundleIdentifier ${bundle_identifier}.preview" \
         "${staging_app}/Contents/PlugIns/WebcardPreview.appex/Contents/Info.plist"
+
+    iconset_directory="${staging_app}.iconset"
+    rm -rf "${iconset_directory}"
+    swift \
+        "${repository_root}/scripts/badge-app-icon.swift" \
+        "${staging_app}/Contents/Resources/AppIcon.icns" \
+        "${iconset_directory}" \
+        "${badge_label}"
+    iconutil \
+        --convert icns \
+        --output "${staging_app}/Contents/Resources/AppIcon.icns" \
+        "${iconset_directory}"
+    rm -rf "${iconset_directory}"
 
     codesign \
         --force \
