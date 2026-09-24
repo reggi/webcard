@@ -67,15 +67,46 @@ final class WebcardDirectoryMonitor {
 }
 
 struct WebcardFolderItem: Identifiable, Sendable {
+    enum Content: Sendable {
+        case webcard(WebcardFile)
+        case webLocation(URL)
+    }
+
     let fileURL: URL
-    let file: WebcardFile
+    let content: Content
+
+    init(fileURL: URL, file: WebcardFile) {
+        self.fileURL = fileURL
+        content = .webcard(file)
+    }
+
+    init(fileURL: URL, webLocationURL: URL) {
+        self.fileURL = fileURL
+        content = .webLocation(webLocationURL)
+    }
 
     var id: URL {
         fileURL
     }
 
+    var file: WebcardFile? {
+        guard case let .webcard(file) = content else {
+            return nil
+        }
+        return file
+    }
+
     var capture: WebcardCapture? {
-        file.currentCapture
+        file?.currentCapture
+    }
+
+    var sourceURL: URL? {
+        switch content {
+        case let .webcard(file):
+            file.sourceURL ?? file.currentCapture?.canonicalURL
+        case let .webLocation(url):
+            url
+        }
     }
 }
 
@@ -375,6 +406,27 @@ struct DirectoryBrowser: Sendable {
                         errors.append("\(url.path): \(error.localizedDescription)")
                     }
 
+                case let .webloc(url):
+                    guard discoveredWebcards < limits.maximumWebcards else {
+                        current.node.markIncomplete()
+                        root.markIncomplete()
+                        continue
+                    }
+                    do {
+                        current.node.webcards.append(
+                            WebcardFolderItem(
+                                fileURL: url,
+                                webLocationURL: try WebcardWebloc.read(
+                                    Data(contentsOf: url, options: .mappedIfSafe)
+                                )
+                            )
+                        )
+                        discoveredWebcards += 1
+                    } catch {
+                        current.node.markIncomplete()
+                        errors.append("\(url.path): \(error.localizedDescription)")
+                    }
+
                 case let .directory(url):
                     guard recursively else {
                         current.node.markIncomplete()
@@ -467,9 +519,15 @@ struct DirectoryBrowser: Sendable {
                         continue
                     }
                     entries.append(.directory(url.standardizedFileURL))
-                } else if values.isRegularFile == true,
-                          url.pathExtension.lowercased() == "webcard" {
-                    entries.append(.webcard(url.standardizedFileURL))
+                } else if values.isRegularFile == true {
+                    switch url.pathExtension.lowercased() {
+                    case "webcard":
+                        entries.append(.webcard(url.standardizedFileURL))
+                    case "webloc":
+                        entries.append(.webloc(url.standardizedFileURL))
+                    default:
+                        break
+                    }
                 }
             } catch {
                 errors.append("\(url.path): \(error.localizedDescription)")
@@ -491,10 +549,11 @@ struct DirectoryBrowser: Sendable {
 private enum DirectoryEntry {
     case directory(URL)
     case webcard(URL)
+    case webloc(URL)
 
     var url: URL {
         switch self {
-        case let .directory(url), let .webcard(url):
+        case let .directory(url), let .webcard(url), let .webloc(url):
             url
         }
     }

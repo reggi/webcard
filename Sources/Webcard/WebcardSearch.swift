@@ -31,31 +31,37 @@ struct WebcardSearchField {
 
 enum WebcardSearch {
     static func score(query: String, for item: WebcardFolderItem) -> Int? {
-        guard let capture = item.capture else {
-            return nil
-        }
-
-        let url = capture.canonicalURL
         var fields = [
             WebcardSearchField(
                 kind: .filename,
                 value: item.fileURL.deletingPathExtension().lastPathComponent
             ),
-            WebcardSearchField(kind: .title, value: capture.title),
-            WebcardSearchField(kind: .siteName, value: capture.siteName),
-            WebcardSearchField(kind: .urlHost, value: url.host ?? ""),
-            WebcardSearchField(kind: .urlPath, value: url.path),
-            WebcardSearchField(kind: .summary, value: capture.summary),
             WebcardSearchField(
                 kind: .folder,
                 value: item.fileURL.deletingLastPathComponent().path
             )
         ]
-        fields.append(
-            contentsOf: capture.socialMetadata.searchableValues.map {
-                WebcardSearchField(kind: .metadata, value: $0)
-            }
-        )
+        if let capture = item.capture {
+            let url = capture.canonicalURL
+            fields.append(contentsOf: [
+                WebcardSearchField(kind: .title, value: capture.title),
+                WebcardSearchField(kind: .siteName, value: capture.siteName),
+                WebcardSearchField(kind: .urlHost, value: url.host ?? ""),
+                WebcardSearchField(kind: .urlPath, value: url.path),
+                WebcardSearchField(kind: .summary, value: capture.summary)
+            ])
+            fields.append(
+                contentsOf: capture.socialMetadata.searchableValues.map {
+                    WebcardSearchField(kind: .metadata, value: $0)
+                }
+            )
+        } else if let url = item.sourceURL {
+            fields.append(contentsOf: [
+                WebcardSearchField(kind: .title, value: "Web Location"),
+                WebcardSearchField(kind: .urlHost, value: url.host ?? ""),
+                WebcardSearchField(kind: .urlPath, value: url.path)
+            ])
+        }
         return score(query: query, in: fields)
     }
 

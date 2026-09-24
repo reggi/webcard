@@ -77,6 +77,22 @@
         </dict>
         <dict>
             <key>CFBundleTypeName</key>
+            <string>Web Internet Location</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>webloc</string>
+            </array>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>com.apple.web-internet-location</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
             <string>Folder of Webcards</string>
             <key>CFBundleTypeRole</key>
             <string>Viewer</string>
