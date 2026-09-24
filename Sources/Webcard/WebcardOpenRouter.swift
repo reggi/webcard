@@ -1223,9 +1223,7 @@ private final class WebcardFolderWindowController: NSWindowController, NSWindowD
         )
         window.title = folderURL.lastPathComponent
         window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
         window.toolbarStyle = .unified
-        window.styleMask.insert(.fullSizeContentView)
         window.minSize = NSSize(width: 760, height: 560)
         let hostingController = NSHostingController(
             rootView: WebcardFolderView(session: session)
