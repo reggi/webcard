@@ -1,4 +1,6 @@
-const releaseUrl = "https://github.com/reggi/webcard/releases/latest";
+import release from "./release.generated.json";
+
+const repositoryUrl = "https://github.com/reggi/webcard";
 
 function DownloadIcon() {
   return (
@@ -51,7 +53,7 @@ export default function App() {
           <img src="./app-icon.png" alt="" />
           <span>Webcard</span>
         </a>
-        <a className="nav-download" href={releaseUrl}>
+        <a className="nav-download" href={release.downloadUrl}>
           Download
         </a>
       </nav>
@@ -70,7 +72,7 @@ export default function App() {
             organize, refresh, and revisit on your Mac.
           </p>
           <div className="hero-actions">
-            <a className="download-button" href={releaseUrl}>
+            <a className="download-button" href={release.downloadUrl}>
               <DownloadIcon />
               Download for macOS
             </a>
@@ -137,7 +139,7 @@ export default function App() {
           <span>Webcard for macOS</span>
           <h2>Save the web as a file.</h2>
         </div>
-        <a className="download-button light" href={releaseUrl}>
+        <a className="download-button light" href={release.downloadUrl}>
           <DownloadIcon />
           Latest release
         </a>
@@ -149,7 +151,7 @@ export default function App() {
           <span>Webcard</span>
         </a>
         <p>Native, private, and made for macOS.</p>
-        <a href="https://github.com/reggi/webcard">GitHub</a>
+        <a href={repositoryUrl}>GitHub</a>
       </footer>
     </main>
   );
