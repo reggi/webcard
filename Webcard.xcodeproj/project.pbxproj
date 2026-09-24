@@ -25,6 +25,7 @@
 		A00000000000000000000012 /* WebcardOpenRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* WebcardOpenRouter.swift */; };
 		A00000000000000000000013 /* RecursiveWebcardDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* RecursiveWebcardDiscovery.swift */; };
 		A00000000000000000000014 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017 /* AppIcon.icns */; };
+		A00000000000000000000015 /* WebcardSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* WebcardSearch.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,6 +82,7 @@
 		A10000000000000000000015 /* WebcardOpenRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcardOpenRouter.swift; sourceTree = "<group>"; };
 		A10000000000000000000016 /* RecursiveWebcardDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecursiveWebcardDiscovery.swift; sourceTree = "<group>"; };
 		A10000000000000000000017 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Resources/AppIcon.icns; sourceTree = "<group>"; };
+		A10000000000000000000018 /* WebcardSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcardSearch.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -133,6 +135,7 @@
 				A10000000000000000000014 /* WebcardFolderView.swift */,
 				A10000000000000000000015 /* WebcardOpenRouter.swift */,
 				A10000000000000000000016 /* RecursiveWebcardDiscovery.swift */,
+				A10000000000000000000018 /* WebcardSearch.swift */,
 				A10000000000000000000017 /* AppIcon.icns */,
 				A10000000000000000000005 /* Info.plist */,
 				A1000000000000000000000B /* Webcard.entitlements */,
@@ -305,6 +308,7 @@
 				A00000000000000000000011 /* WebcardFolderView.swift in Sources */,
 				A00000000000000000000012 /* WebcardOpenRouter.swift in Sources */,
 				A00000000000000000000013 /* RecursiveWebcardDiscovery.swift in Sources */,
+				A00000000000000000000015 /* WebcardSearch.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

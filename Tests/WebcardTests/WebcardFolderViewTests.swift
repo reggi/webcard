@@ -179,28 +179,100 @@ final class WebcardFolderViewTests: XCTestCase {
         )
     }
 
-    func testFuzzySearchMatchesSubsequencesAndMultipleTerms() {
-        XCTAssertNotNil(WebcardFuzzySearch.score(
+    func testSearchMatchesSubsequencesAndMultipleTerms() {
+        XCTAssertNotNil(WebcardSearch.score(
             query: "wbc",
             in: ["Webcard"]
         ))
-        XCTAssertNotNil(WebcardFuzzySearch.score(
+        XCTAssertNotNil(WebcardSearch.score(
             query: "swift layout",
             in: ["A SwiftUI card", "Masonry layout"]
         ))
-        XCTAssertNil(WebcardFuzzySearch.score(
+        XCTAssertNil(WebcardSearch.score(
             query: "swift missing",
             in: ["A SwiftUI card", "Masonry layout"]
         ))
     }
 
-    func testFuzzySearchPrefersExactAndPrefixMatches() throws {
-        let exact = try XCTUnwrap(WebcardFuzzySearch.score(query: "webcard", in: ["webcard"]))
-        let prefix = try XCTUnwrap(WebcardFuzzySearch.score(query: "web", in: ["webcard"]))
-        let subsequence = try XCTUnwrap(WebcardFuzzySearch.score(query: "wcd", in: ["webcard"]))
+    func testSearchPrefersExactAndPrefixMatches() throws {
+        let exact = try XCTUnwrap(WebcardSearch.score(query: "webcard", in: ["webcard"]))
+        let prefix = try XCTUnwrap(WebcardSearch.score(query: "web", in: ["webcard"]))
+        let subsequence = try XCTUnwrap(WebcardSearch.score(query: "wcd", in: ["webcard"]))
 
         XCTAssertGreaterThan(exact, prefix)
         XCTAssertGreaterThan(prefix, subsequence)
+    }
+
+    func testSearchHandlesTyposDiacriticsPunctuationAndQuotedPhrases() {
+        XCTAssertNotNil(WebcardSearch.score(
+            query: "javscript",
+            in: ["JavaScript performance guide"]
+        ))
+        XCTAssertNotNil(WebcardSearch.score(
+            query: "cafe",
+            in: ["Café reviews"]
+        ))
+        XCTAssertNotNil(WebcardSearch.score(
+            query: "example com",
+            in: ["https://example.com/reference"]
+        ))
+        XCTAssertNotNil(WebcardSearch.score(
+            query: "\"swift layout\"",
+            in: ["A practical Swift layout guide"]
+        ))
+        XCTAssertNil(WebcardSearch.score(
+            query: "\"layout swift\"",
+            in: ["A practical Swift layout guide"]
+        ))
+    }
+
+    func testSearchRejectsBroadShortFuzzyMatches() {
+        XCTAssertNil(WebcardSearch.score(query: "ab", in: ["A broad unrelated card"]))
+    }
+
+    func testSearchRanksStrongFieldsAndNestedFoldersByRelevance() throws {
+        let root = URL(fileURLWithPath: "/tmp/Webcards", isDirectory: true)
+        let lowMatch = makeSearchItem(
+            filename: "alpha",
+            title: "General reference",
+            summary: "A summary about Swift",
+            directory: root
+        )
+        let highMatch = makeSearchItem(
+            filename: "zulu",
+            title: "Swift",
+            summary: "Language reference",
+            directory: root
+        )
+        let lowChild = WebcardDirectoryNode(
+            directoryURL: root.appendingPathComponent("Alpha", isDirectory: true),
+            directWebcards: [lowMatch],
+            children: [],
+            discoveryState: .complete
+        )
+        let highChild = WebcardDirectoryNode(
+            directoryURL: root.appendingPathComponent("Zulu", isDirectory: true),
+            directWebcards: [highMatch],
+            children: [],
+            discoveryState: .complete
+        )
+        let hierarchy = WebcardDirectoryNode(
+            directoryURL: root,
+            directWebcards: [lowMatch, highMatch],
+            children: [lowChild, highChild],
+            discoveryState: .complete
+        )
+
+        let filtered = try XCTUnwrap(hierarchy.filtering(query: "swift"))
+
+        XCTAssertEqual(filtered.directWebcards.map(\.fileURL.lastPathComponent), [
+            "zulu.webcard",
+            "alpha.webcard"
+        ])
+        XCTAssertEqual(filtered.children.map(\.directoryURL.lastPathComponent), [
+            "Zulu",
+            "Alpha"
+        ])
     }
 
     func testVisualHierarchyUsesContinuationItemsAfterTwoInlineLevels() {
@@ -624,6 +696,33 @@ final class WebcardFolderViewTests: XCTestCase {
         try WebcardArchive.write(file).write(
             to: directory.appendingPathComponent("\(name).webcard"),
             options: .atomic
+        )
+    }
+
+    private func makeSearchItem(
+        filename: String,
+        title: String,
+        summary: String,
+        directory: URL
+    ) -> WebcardFolderItem {
+        let imageData = Data("image-\(filename)".utf8)
+        let capture = WebcardCapture(
+            id: filename,
+            canonicalURL: URL(string: "https://example.com/\(filename)")!,
+            title: title,
+            summary: summary,
+            siteName: "Example",
+            imageSHA256: WebcardArchive.sha256(imageData),
+            capturedAt: Date(timeIntervalSince1970: 0),
+            imageData: imageData
+        )
+        return WebcardFolderItem(
+            fileURL: directory.appendingPathComponent("\(filename).webcard"),
+            file: WebcardFile(
+                sourceURL: capture.canonicalURL,
+                captures: [capture],
+                currentCaptureID: capture.id
+            )
         )
     }
 
