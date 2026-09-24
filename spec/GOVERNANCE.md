@@ -22,4 +22,4 @@ An extension identifier is an absolute HTTPS URL controlled by its publisher. Ex
 
 Readers reject unsupported major versions. Readers may accept a later minor version only when they understand its required capabilities. Writers never silently downgrade files. Preserving consumers retain unknown namespaced extension metadata and files or refuse to rewrite the archive.
 
-Legacy integer formats `1` and `2` are migration inputs only. New files are written as Webcard Format 1.0.0.
+Legacy integer formats `1` and `2` are unsupported private prototypes. The reference application reads and writes only Webcard Format 1.0.0.

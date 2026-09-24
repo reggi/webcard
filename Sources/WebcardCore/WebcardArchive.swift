@@ -12,42 +12,6 @@ public enum WebcardArchive {
     public static let maximumManifestSize = 64 * 1024
     public static let maximumImageSize = 15 * 1024 * 1024
 
-    private struct VersionProbe: Decodable {
-        let version: Int
-    }
-
-    private struct VersionOneManifest: Codable {
-        let version: Int
-        let url: URL
-        let canonicalUrl: URL
-        let title: String
-        let description: String
-        let siteName: String
-        let image: String
-        let savedAt: Date
-    }
-
-    private struct RootManifest: Codable {
-        let version: Int
-        let url: URL
-        let currentCapture: String
-        let captures: [String]
-        let lastRefreshedAt: Date?
-    }
-
-    private struct CaptureManifest: Codable {
-        let canonicalUrl: URL
-        let title: String
-        let description: String
-        let siteName: String
-        let image: String
-        let imageSHA256: String
-        let capturedAt: Date
-        let icon: String?
-        let iconSHA256: String?
-        let socialMetadata: WebcardSocialMetadata?
-    }
-
     private struct DynamicCodingKey: CodingKey {
         let stringValue: String
         let intValue: Int? = nil
@@ -250,20 +214,12 @@ public enum WebcardArchive {
             throw WebcardError.invalidArchive("The webcard is not a valid ZIP archive.")
         }
         try validateEntryNames(in: archive)
-        if archive["webcard.json"] != nil || archive["mimetype"] != nil {
-            return try readPublicFormat(archive: archive)
+        guard archive["webcard.json"] != nil || archive["mimetype"] != nil else {
+            throw WebcardError.invalidArchive(
+                "This legacy prototype webcard is not supported. Webcard Format 1.0.0 is required."
+            )
         }
-        let rootData = try extract("manifest.json", from: archive, limit: maximumManifestSize)
-        let decoder = makeDecoder()
-        let version = try decoder.decode(VersionProbe.self, from: rootData).version
-        switch version {
-        case 1:
-            return try readVersionOne(rootData: rootData, archive: archive, decoder: decoder)
-        case 2:
-            return try readVersionTwo(rootData: rootData, archive: archive, decoder: decoder)
-        default:
-            throw WebcardError.unsupportedVersion(version)
-        }
+        return try readPublicFormat(archive: archive)
     }
 
     public static func write(_ file: WebcardFile) throws -> Data {
@@ -495,117 +451,6 @@ public enum WebcardArchive {
             throw WebcardError.invalidArchive("The asset integrity check failed.")
         }
         return data
-    }
-
-    private static func readVersionOne(
-        rootData: Data,
-        archive: Archive,
-        decoder: JSONDecoder
-    ) throws -> WebcardFile {
-        let entries = Set(archive.map(\.path))
-        guard entries == ["manifest.json", "card.webp"] else {
-            throw WebcardError.invalidArchive("Version 1 webcards must contain only manifest.json and card.webp.")
-        }
-        let manifest = try decoder.decode(VersionOneManifest.self, from: rootData)
-        guard manifest.version == 1, manifest.image == "card.webp" else {
-            throw WebcardError.invalidArchive("The version 1 manifest is invalid.")
-        }
-        try validateRemoteURL(manifest.url)
-        try validateRemoteURL(manifest.canonicalUrl)
-        let imageData = try extract("card.webp", from: archive, limit: maximumImageSize)
-        let id = captureID(for: manifest.savedAt)
-        let capture = WebcardCapture(
-            id: id,
-            canonicalURL: manifest.canonicalUrl,
-            title: normalized(manifest.title, maximum: 500),
-            summary: normalized(manifest.description, maximum: 2_000),
-            siteName: normalized(manifest.siteName, maximum: 300),
-            imageSHA256: sha256(imageData),
-            capturedAt: manifest.savedAt,
-            imageData: imageData
-        )
-        return WebcardFile(sourceURL: manifest.url, captures: [capture], currentCaptureID: id)
-    }
-
-    private static func readVersionTwo(
-        rootData: Data,
-        archive: Archive,
-        decoder: JSONDecoder
-    ) throws -> WebcardFile {
-        let manifest = try decoder.decode(RootManifest.self, from: rootData)
-        guard manifest.version == 2, !manifest.captures.isEmpty else {
-            throw WebcardError.invalidArchive("The version 2 manifest is invalid.")
-        }
-        try validateRemoteURL(manifest.url)
-        guard Set(manifest.captures).count == manifest.captures.count,
-              manifest.captures.contains(manifest.currentCapture) else {
-            throw WebcardError.invalidArchive("The capture list is invalid.")
-        }
-        var expectedEntries = Set(["manifest.json"])
-        let captures = try manifest.captures.map { id in
-            guard isSafeCaptureID(id) else {
-                throw WebcardError.invalidArchive("The webcard contains an invalid capture identifier.")
-            }
-            let base = "captures/\(id)"
-            expectedEntries.insert("\(base)/manifest.json")
-            let captureData = try extract("\(base)/manifest.json", from: archive, limit: maximumManifestSize)
-            let captureManifest = try decoder.decode(CaptureManifest.self, from: captureData)
-            let imagePath: String
-            if captureManifest.image == "card.webp" {
-                imagePath = "\(base)/card.webp"
-            } else if isSharedImagePath(captureManifest.image, sha256: captureManifest.imageSHA256) {
-                imagePath = captureManifest.image
-            } else {
-                throw WebcardError.invalidArchive("The capture image reference is invalid.")
-            }
-            expectedEntries.insert(imagePath)
-            try validateRemoteURL(captureManifest.canonicalUrl)
-            let imageData = try extract(imagePath, from: archive, limit: maximumImageSize)
-            guard sha256(imageData) == captureManifest.imageSHA256.lowercased() else {
-                throw WebcardError.invalidArchive("The capture image checksum does not match.")
-            }
-            var iconData: Data?
-            if let iconPath = captureManifest.icon, let iconSHA256 = captureManifest.iconSHA256 {
-                guard isSharedImagePath(iconPath, sha256: iconSHA256) else {
-                    throw WebcardError.invalidArchive("The capture icon reference is invalid.")
-                }
-                expectedEntries.insert(iconPath)
-                let extractedIcon = try extract(iconPath, from: archive, limit: maximumImageSize)
-                guard sha256(extractedIcon) == iconSHA256.lowercased() else {
-                    throw WebcardError.invalidArchive("The capture icon checksum does not match.")
-                }
-                iconData = extractedIcon
-            } else if captureManifest.icon != nil || captureManifest.iconSHA256 != nil {
-                throw WebcardError.invalidArchive("The capture icon metadata is incomplete.")
-            }
-            let capture = WebcardCapture(
-                id: id,
-                canonicalURL: captureManifest.canonicalUrl,
-                title: normalized(captureManifest.title, maximum: 500),
-                summary: normalized(captureManifest.description, maximum: 2_000),
-                siteName: normalized(captureManifest.siteName, maximum: 300),
-                imagePath: captureManifest.image,
-                imageSHA256: captureManifest.imageSHA256.lowercased(),
-                capturedAt: captureManifest.capturedAt,
-                imageData: imageData,
-                iconPath: captureManifest.icon,
-                iconSHA256: captureManifest.iconSHA256?.lowercased(),
-                iconData: iconData,
-                socialMetadata: captureManifest.socialMetadata ?? WebcardSocialMetadata()
-            )
-            try validateCapture(capture)
-            return capture
-        }
-        guard Set(archive.map(\.path)) == expectedEntries else {
-            throw WebcardError.invalidArchive("The webcard contains unexpected archive entries.")
-        }
-        let currentCaptureDate = captures.first { $0.id == manifest.currentCapture }?.capturedAt
-        return WebcardFile(
-            sourceURL: manifest.url,
-            captures: captures,
-            currentCaptureID: manifest.currentCapture,
-            lastRefreshedAt: manifest.lastRefreshedAt ?? currentCaptureDate
-        )
     }
 
     private static func validateCapture(

@@ -100,4 +100,4 @@ A core producer MUST emit a valid container, root document, capture documents, a
 
 ## Legacy prototypes
 
-The Webcard macOS application previously emitted integer archive versions `1` and `2` using `manifest.json`. Those layouts are not public Webcard Format versions. Reference implementations MAY read them for migration but MUST write Webcard Format 1.0.0.
+The Webcard macOS application previously emitted integer archive versions `1` and `2` using `manifest.json`. Those layouts are not public Webcard Format versions. The reference application rejects them and requires Webcard Format 1.0.0.

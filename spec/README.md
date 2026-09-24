@@ -2,7 +2,7 @@
 
 Webcard Format is an open, ZIP based container for portable web bookmarks, link previews, capture history, and optional interoperable extensions.
 
-The first public specification is [Webcard Format 1.0.0](1.0.0/README.md). Archive formats identified by integer versions `1` and `2` were private application prototypes and are documented only for migration.
+The first public specification is [Webcard Format 1.0.0](1.0.0/README.md). Archive formats identified by integer versions `1` and `2` were private application prototypes and are not supported by the reference application.
 
 ## Versioning
 

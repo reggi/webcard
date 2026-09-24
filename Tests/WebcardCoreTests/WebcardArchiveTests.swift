@@ -185,7 +185,7 @@ struct WebcardArchiveTests {
     }
 
     @Test
-    func readsVersionOneArchiveWithFractionalDate() throws {
+    func rejectsPrototypeVersionOneArchive() throws {
         let manifest = Data(
             """
             {
@@ -205,16 +205,13 @@ struct WebcardArchiveTests {
         try add(manifest, path: "manifest.json", to: archive)
         try add(image, path: "card.webp", to: archive)
 
-        let file = try WebcardArchive.read(try #require(archive.data))
-
-        #expect(file.sourceURL == URL(string: "https://example.com/original"))
-        #expect(file.currentCapture?.canonicalURL == URL(string: "https://example.com/article"))
-        #expect(file.currentCapture?.title == "Saved article")
-        #expect(file.currentCapture?.imageData == image)
+        #expect(throws: WebcardError.self) {
+            try WebcardArchive.read(try #require(archive.data))
+        }
     }
 
     @Test
-    func readsLegacyVersionTwoArchive() throws {
+    func rejectsPrototypeVersionTwoArchive() throws {
         let image = Data("legacy version two image".utf8)
         let digest = WebcardArchive.sha256(image)
         let captureID = "2026-09-24T04-26-56-575Z"
@@ -247,11 +244,9 @@ struct WebcardArchiveTests {
         try add(capture, path: "captures/\(captureID)/manifest.json", to: archive)
         try add(image, path: "images/\(digest).webp", to: archive)
 
-        let file = try WebcardArchive.read(try #require(archive.data))
-
-        #expect(file.sourceURL == URL(string: "https://example.com/original"))
-        #expect(file.currentCapture?.title == "Legacy capture")
-        #expect(file.currentCapture?.imageData == image)
+        #expect(throws: WebcardError.self) {
+            try WebcardArchive.read(try #require(archive.data))
+        }
     }
 
     @Test
