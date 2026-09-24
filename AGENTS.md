@@ -1,20 +1,18 @@
 # Agent workflow
 
-Use this local worktree lifecycle for every task:
+Use this branch and pull request lifecycle for every task:
 
-1. Create a feature branch and worktree from `main`.
-2. Complete the requested work and commit it locally.
+1. Fetch `origin` and create a feature branch and worktree from `origin/main`.
+2. Complete the requested work and commit it on the feature branch.
 3. Decide whether human verification is required.
 4. If human verification is required, build the application with `./scripts/reinstall-app.sh`, ask the human to test it, and stop until explicit approval is received.
 5. If human verification is not required, continue without requesting testing or running the reinstall command as a finalization step.
-6. Check whether the `main` worktree has uncommitted changes.
-7. If `main` is dirty, report the changed files and stop until the human confirms it is ready. Do not stash, discard, or commit those changes.
-8. After approval, check `main` again and continue only if it is clean.
-9. Merge the feature branch into `main` locally.
-10. If the merge fails or conflicts, stop and report the problem.
-11. After a successful merge, change to the `main` worktree, remove the feature worktree, and delete the local feature branch with `git branch -d`.
+6. Push the feature branch to `origin`.
+7. Open a pull request targeting `main`.
+8. Report the pull request and leave it for review and merging.
+9. After the pull request is confirmed merged, remove the feature worktree and delete the local feature branch with `git branch -d`.
 
-Do not push, open a pull request, deploy, interact with GitHub, run additional post-merge installation tests, list all worktrees as a finalization step, use force deletion, or leave the completed worktree and branch behind.
+Do not merge a feature branch into `main` locally, push directly to `main`, merge a pull request unless explicitly requested, deploy, run additional post-merge installation tests, list all worktrees as a finalization step, or use force deletion.
 
 ## Human verification builds
 
