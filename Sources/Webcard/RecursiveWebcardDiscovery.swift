@@ -136,34 +136,51 @@ struct WebcardDirectoryNode: Identifiable, Sendable {
     }
 
     func filtering(query: String) -> WebcardDirectoryNode? {
-        guard !query.isEmpty else {
+        guard !WebcardSearch.isEmpty(query) else {
             return self
         }
 
-        let matchingWebcards = directWebcards.filter { item in
-            guard let capture = item.capture else {
-                return false
+        return searchResult(query: query)?.node
+    }
+
+    private func searchResult(
+        query: String
+    ) -> (node: WebcardDirectoryNode, score: Int)? {
+        let matchingWebcards = directWebcards.compactMap { item -> (WebcardFolderItem, Int)? in
+            WebcardSearch.score(query: query, for: item).map { (item, $0) }
+        }.sorted {
+            if $0.1 != $1.1 {
+                return $0.1 > $1.1
             }
-            return WebcardFuzzySearch.score(
-                query: query,
-                in: [
-                    item.fileURL.deletingPathExtension().lastPathComponent,
-                    capture.title,
-                    capture.summary,
-                    capture.siteName,
-                    capture.canonicalURL.absoluteString
-                ] + capture.socialMetadata.searchableValues
-            ) != nil
+            return $0.0.fileURL.lastPathComponent.localizedStandardCompare(
+                $1.0.fileURL.lastPathComponent
+            ) == .orderedAscending
         }
-        let matchingChildren = children.compactMap { $0.filtering(query: query) }
+        let matchingChildren = children.compactMap {
+            $0.searchResult(query: query)
+        }.sorted {
+            if $0.score != $1.score {
+                return $0.score > $1.score
+            }
+            return $0.node.directoryURL.lastPathComponent.localizedStandardCompare(
+                $1.node.directoryURL.lastPathComponent
+            ) == .orderedAscending
+        }
         guard !matchingWebcards.isEmpty || !matchingChildren.isEmpty else {
             return nil
         }
-        return WebcardDirectoryNode(
+        let node = WebcardDirectoryNode(
             directoryURL: directoryURL,
-            directWebcards: matchingWebcards,
-            children: matchingChildren,
+            directWebcards: matchingWebcards.map(\.0),
+            children: matchingChildren.map(\.node),
             discoveryState: discoveryState
+        )
+        return (
+            node,
+            max(
+                matchingWebcards.map(\.1).max() ?? Int.min,
+                matchingChildren.map(\.score).max() ?? Int.min
+            )
         )
     }
 
