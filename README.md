@@ -54,7 +54,6 @@ To test an isolated named build from the `main` worktree, set a variant:
 ```sh
 WEBCARD_INSTALL_VARIANT="experiment" ./scripts/reinstall-app.sh
 ```
-
 ## Releases
 
 Pushes to `main` run Release Please, which maintains a release pull request from Conventional Commit history. Merging that pull request creates a semantic version tag and GitHub release, then builds `Webcard-<version>-macOS-universal.zip` with its SHA-256 checksum. Both files are available from the workflow run, and the release assets are downloadable from the GitHub release.
