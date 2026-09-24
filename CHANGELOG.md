@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.1](https://github.com/reggi/webcard/compare/v0.2.0...v0.2.1) (2026-09-24)
+
+
+### Bug Fixes
+
+* prevent directory content scrolling under toolbar ([#3](https://github.com/reggi/webcard/issues/3)) ([9b0cc58](https://github.com/reggi/webcard/commit/9b0cc58dc92562cbcda2f1acebf18c7dfa58d17f))
+* restore Quick Look card layout ([#4](https://github.com/reggi/webcard/issues/4)) ([37f1507](https://github.com/reggi/webcard/commit/37f1507a0ca2624b857887c3f461bfad766627b3))
+* use Xcode 16 release runner ([68bffa8](https://github.com/reggi/webcard/commit/68bffa88f0408f49e13112a30db836c028afaff2))
+
 ## [0.2.0](https://github.com/reggi/webcard/compare/v0.1.0...v0.2.0) (2026-09-24)
 
 
