@@ -978,6 +978,30 @@ enum WebcardMasonryPlanner {
     }
 }
 
+@MainActor
+final class WebcardFolderWindowSession: ObservableObject {
+    let browserModel: WebcardFolderBrowserModel
+    @Published var searchText = ""
+    @Published var pendingScrollURL: URL?
+
+    init(folderURL: URL) {
+        browserModel = WebcardFolderBrowserModel(rootURL: folderURL)
+    }
+
+    func addWebcard() {
+        WebcardAppDelegate.shared?.showAddWebcardWindow(
+            destinationDirectory: browserModel.currentURL
+        ) { [weak self] fileURL in
+            guard let self else {
+                return
+            }
+            searchText = ""
+            pendingScrollURL = fileURL
+            browserModel.refresh()
+        }
+    }
+}
+
 struct WebcardFolderView: View {
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "Webcard",
@@ -985,16 +1009,14 @@ struct WebcardFolderView: View {
     )
 
     @ObservedObject private var folderSettings = WebcardFolderSettings.shared
-    @StateObject private var browserModel: WebcardFolderBrowserModel
-    @State private var searchText = ""
-    @State private var pendingScrollURL: URL?
+    @ObservedObject private var session: WebcardFolderWindowSession
+    @ObservedObject private var browserModel: WebcardFolderBrowserModel
 
     private let spacing: CGFloat = 20
 
-    init(folderURL: URL) {
-        _browserModel = StateObject(
-            wrappedValue: WebcardFolderBrowserModel(rootURL: folderURL)
-        )
+    init(session: WebcardFolderWindowSession) {
+        self.session = session
+        browserModel = session.browserModel
     }
 
     private var layoutMode: WebcardFolderLayoutMode {
@@ -1002,7 +1024,7 @@ struct WebcardFolderView: View {
     }
 
     private var visibleHierarchy: WebcardDirectoryNode? {
-        browserModel.hierarchy?.filtering(query: searchText)
+        browserModel.hierarchy?.filtering(query: session.searchText)
     }
 
     private var allVisibleItems: [WebcardFolderItem] {
@@ -1013,7 +1035,7 @@ struct WebcardFolderView: View {
     }
 
     private var hasSearchQuery: Bool {
-        !WebcardSearch.isEmpty(searchText)
+        !WebcardSearch.isEmpty(session.searchText)
     }
 
     var body: some View {
@@ -1025,13 +1047,10 @@ struct WebcardFolderView: View {
                     isLoading: browserModel.isLoadingImmediate && browserModel.sidebarHierarchy == nil,
                     navigate: browserModel.navigate(to:)
                 )
-                .frame(minWidth: 190, idealWidth: 240, maxWidth: 320)
+                .frame(minWidth: 220, idealWidth: 240, maxWidth: 280)
             }
 
-            VStack(spacing: 0) {
-                controls
-                Divider()
-
+            Group {
                 if browserModel.isLoadingImmediate {
                     ProgressView("Loading webcards…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1048,16 +1067,15 @@ struct WebcardFolderView: View {
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if visibleHierarchy == nil, hasSearchQuery {
-                    ContentUnavailableView.search(text: searchText)
+                    ContentUnavailableView.search(text: session.searchText)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     gallery
                 }
             }
             .frame(minWidth: 520)
+            .background(Color(nsColor: .textBackgroundColor))
         }
-        .navigationTitle(displayName(for: browserModel.currentURL))
-        .navigationSubtitle(navigationSubtitle)
         .task {
             browserModel.loadIfNeeded()
         }
@@ -1066,120 +1084,6 @@ struct WebcardFolderView: View {
         } message: {
             Text(browserModel.errorMessage ?? "")
         }
-    }
-
-    private var controls: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Button {
-                    folderSettings.isDirectoryDrawerVisible.toggle()
-                } label: {
-                    Image(systemName: "sidebar.left")
-                }
-                .help(
-                    folderSettings.isDirectoryDrawerVisible
-                        ? "Hide Directory Drawer"
-                        : "Show Directory Drawer"
-                )
-                .accessibilityLabel(
-                    folderSettings.isDirectoryDrawerVisible
-                        ? "Hide Directory Drawer"
-                        : "Show Directory Drawer"
-                )
-
-                Button {
-                    browserModel.goBack()
-                } label: {
-                    Image(systemName: "chevron.left")
-                }
-                .disabled(!browserModel.canGoBack)
-                .help("Back")
-
-                breadcrumb
-
-                Spacer()
-
-                if browserModel.isDiscovering {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Discovering nested webcards…")
-                        .foregroundStyle(.secondary)
-                }
-
-                Button {
-                    WebcardAppDelegate.shared?.showAddWebcardWindow(
-                        destinationDirectory: browserModel.currentURL
-                    ) { fileURL in
-                        searchText = ""
-                        pendingScrollURL = fileURL
-                        browserModel.refresh()
-                    }
-                } label: {
-                    Label("Add Webcard", systemImage: "plus")
-                }
-                .buttonStyle(.borderedProminent)
-                .webcardPointingHandCursor()
-            }
-
-            HStack(spacing: 10) {
-                HStack(spacing: 7) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField(
-                        "Search titles, URLs, descriptions, and metadata",
-                        text: $searchText
-                    )
-                    .textFieldStyle(.plain)
-                    if hasSearchQuery {
-                        Button {
-                            searchText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                        .help("Clear Search")
-                        .accessibilityLabel("Clear Search")
-                    }
-                }
-                .padding(.horizontal, 9)
-                .padding(.vertical, 6)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 7))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 7)
-                        .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
-                }
-                .frame(minWidth: 280, maxWidth: 520)
-
-                if hasSearchQuery {
-                    Text(searchResultLabel)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-            }
-        }
-        .padding(12)
-    }
-
-    private var breadcrumb: some View {
-        HStack(spacing: 4) {
-            ForEach(Array(browserModel.navigationPath.enumerated()), id: \.element) { index, url in
-                if index > 0 {
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Button(displayName(for: url)) {
-                    browserModel.navigateToBreadcrumb(at: index)
-                }
-                .buttonStyle(.plain)
-                .disabled(index == browserModel.navigationPath.count - 1)
-            }
-        }
-        .lineLimit(1)
     }
 
     private var gallery: some View {
@@ -1222,7 +1126,7 @@ struct WebcardFolderView: View {
                     }
                 }
                 .onChange(of: allVisibleItems.map(\.fileURL), initial: true) { _, fileURLs in
-                    guard let pendingScrollURL,
+                    guard let pendingScrollURL = session.pendingScrollURL,
                           fileURLs.map(\.standardizedFileURL).contains(pendingScrollURL) else {
                         return
                     }
@@ -1230,7 +1134,7 @@ struct WebcardFolderView: View {
                         withAnimation {
                             proxy.scrollTo(pendingScrollURL, anchor: .center)
                         }
-                        self.pendingScrollURL = nil
+                        session.pendingScrollURL = nil
                     }
                 }
             }
@@ -1587,13 +1491,6 @@ struct WebcardFolderView: View {
         )
     }
 
-    private var navigationSubtitle: String {
-        guard let hierarchy = browserModel.hierarchy else {
-            return ""
-        }
-        return countLabel(for: hierarchy)
-    }
-
     private var layoutDebugID: String {
         let hierarchy = browserModel.hierarchy
         return [
@@ -1630,11 +1527,6 @@ struct WebcardFolderView: View {
 
     private func countLabel(for node: WebcardDirectoryNode) -> String {
         WebcardFolderCountFormatter.label(for: node)
-    }
-
-    private var searchResultLabel: String {
-        let count = allVisibleItems.count
-        return "\(count) \(count == 1 ? "result" : "results")"
     }
 
     private func flattenWebcards(
@@ -1675,41 +1567,54 @@ private struct WebcardFolderSidebar: View {
 
     @State private var expandedURLs: Set<URL> = []
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Folders")
-                .font(.headline)
-                .padding(.horizontal, 12)
-                .padding(.top, 14)
-                .padding(.bottom, 8)
+    private var selection: Binding<URL?> {
+        Binding(
+            get: { selectedURL },
+            set: { selectedURL in
+                if let selectedURL {
+                    navigate(selectedURL)
+                }
+            }
+        )
+    }
 
+    var body: some View {
+        Group {
             if isLoading {
                 ProgressView()
                     .controlSize(.small)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let hierarchy {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 2) {
-                        sidebarButton(
+                List(selection: selection) {
+                    Section("Folders") {
+                        sidebarLabel(
                             title: "All Webcards",
-                            systemImage: "rectangle.stack.fill",
-                            node: hierarchy,
+                            systemImage: "folder.fill",
+                            count: hierarchy.discoveredWebcardCount,
                             depth: 0
                         )
+                        .tag(hierarchy.directoryURL)
+                        .help(WebcardFolderCountFormatter.label(for: hierarchy))
 
-                        ForEach(hierarchy.children.filter(\.hasDiscoveredContent)) { child in
-                            WebcardFolderTreeRow(
-                                node: child,
-                                depth: 0,
-                                selectedURL: selectedURL,
-                                expandedURLs: $expandedURLs,
-                                navigate: navigate
+                        ForEach(visibleRows(for: hierarchy)) { row in
+                            WebcardFolderSidebarRow(
+                                node: row.node,
+                                depth: row.depth,
+                                isExpanded: expandedURLs.contains(row.id),
+                                toggleExpansion: {
+                                    if expandedURLs.contains(row.id) {
+                                        expandedURLs.remove(row.id)
+                                    } else {
+                                        expandedURLs.insert(row.id)
+                                    }
+                                }
                             )
+                            .tag(row.node.directoryURL)
                         }
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 12)
                 }
+                .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
                 .onChange(of: hierarchy.children.map(\.id), initial: true) { _, childIDs in
                     expandedURLs.formUnion(childIDs)
                 }
@@ -1720,116 +1625,90 @@ private struct WebcardFolderSidebar: View {
                 )
             }
         }
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(.regularMaterial)
     }
 
-    private func sidebarButton(
+    private func sidebarLabel(
         title: String,
         systemImage: String,
-        node: WebcardDirectoryNode,
+        count: Int,
         depth: Int
     ) -> some View {
-        Button {
-            navigate(node.directoryURL)
-        } label: {
-            HStack(spacing: 7) {
-                Image(systemName: systemImage)
-                    .foregroundStyle(Color.accentColor)
-                    .frame(width: 16)
-                Text(title)
-                    .lineLimit(1)
-                Spacer(minLength: 6)
-                Text("\(node.discoveredWebcardCount)\(node.isComplete ? "" : "+")")
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-            .padding(.leading, CGFloat(depth) * 16)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .contentShape(Rectangle())
-            .background(
-                selectedURL == node.directoryURL
-                    ? Color.accentColor.opacity(0.18)
-                    : Color.clear
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+        HStack(spacing: 7) {
+            Image(systemName: systemImage)
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 16)
+            Text(title)
+                .lineLimit(1)
+            Spacer(minLength: 6)
+            Text("\(count)")
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
         }
-        .buttonStyle(.plain)
-        .help(WebcardFolderCountFormatter.label(for: node))
+        .padding(.leading, CGFloat(depth) * 16)
+        .contentShape(Rectangle())
+    }
+
+    private func visibleRows(for hierarchy: WebcardDirectoryNode) -> [WebcardFolderSidebarNode] {
+        hierarchy.children
+            .filter(\.hasDiscoveredContent)
+            .flatMap { visibleRows(for: $0, depth: 0) }
+    }
+
+    private func visibleRows(
+        for node: WebcardDirectoryNode,
+        depth: Int
+    ) -> [WebcardFolderSidebarNode] {
+        let row = WebcardFolderSidebarNode(node: node, depth: depth)
+        guard expandedURLs.contains(node.id) else {
+            return [row]
+        }
+        return [row] + node.children
+            .filter(\.hasDiscoveredContent)
+            .flatMap { visibleRows(for: $0, depth: depth + 1) }
     }
 }
 
-private struct WebcardFolderTreeRow: View {
+private struct WebcardFolderSidebarNode: Identifiable {
     let node: WebcardDirectoryNode
     let depth: Int
-    let selectedURL: URL
-    @Binding var expandedURLs: Set<URL>
-    let navigate: (URL) -> Void
 
-    private var isExpanded: Bool {
-        expandedURLs.contains(node.id)
+    var id: URL {
+        node.id
     }
+}
+
+private struct WebcardFolderSidebarRow: View {
+    let node: WebcardDirectoryNode
+    let depth: Int
+    let isExpanded: Bool
+    let toggleExpansion: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 3) {
-                Button {
-                    if isExpanded {
-                        expandedURLs.remove(node.id)
-                    } else {
-                        expandedURLs.insert(node.id)
-                    }
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.semibold))
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                        .frame(width: 14, height: 20)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .opacity(node.children.isEmpty ? 0 : 1)
-                .disabled(node.children.isEmpty)
-
-                Button {
-                    navigate(node.directoryURL)
-                } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: "folder.fill")
-                            .foregroundStyle(Color.accentColor)
-                            .frame(width: 16)
-                        Text(node.directoryURL.lastPathComponent)
-                            .lineLimit(1)
-                        Spacer(minLength: 6)
-                        Text("\(node.discoveredWebcardCount)\(node.isComplete ? "" : "+")")
-                            .foregroundStyle(.secondary)
-                            .monospacedDigit()
-                    }
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 6)
+        HStack(spacing: 3) {
+            Button(action: toggleExpansion) {
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    .frame(width: 14, height: 20)
                     .contentShape(Rectangle())
-                    .background(
-                        selectedURL == node.directoryURL
-                            ? Color.accentColor.opacity(0.18)
-                            : Color.clear
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
-                .buttonStyle(.plain)
-                .help(WebcardFolderCountFormatter.label(for: node))
             }
-            .padding(.leading, CGFloat(depth) * 16)
+            .buttonStyle(.plain)
+            .opacity(node.children.isEmpty ? 0 : 1)
+            .disabled(node.children.isEmpty)
 
-            if isExpanded {
-                ForEach(node.children.filter(\.hasDiscoveredContent)) { child in
-                    WebcardFolderTreeRow(
-                        node: child,
-                        depth: depth + 1,
-                        selectedURL: selectedURL,
-                        expandedURLs: $expandedURLs,
-                        navigate: navigate
-                    )
-                }
-            }
+            Image(systemName: "folder.fill")
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 16)
+            Text(node.directoryURL.lastPathComponent)
+                .lineLimit(1)
+            Spacer(minLength: 6)
+            Text("\(node.discoveredWebcardCount)")
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
         }
+        .padding(.leading, CGFloat(depth) * 16)
+        .contentShape(Rectangle())
+        .help(WebcardFolderCountFormatter.label(for: node))
     }
 }
