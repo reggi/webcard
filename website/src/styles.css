@@ -423,6 +423,50 @@ h1 {
   justify-self: end;
 }
 
+.quick-look-story {
+  overflow: hidden;
+  padding: 145px max(32px, calc((100vw - 1280px) / 2));
+  background:
+    radial-gradient(circle at 50% 54%, rgb(70 107 208 / 15%), transparent 34%),
+    #121014;
+}
+
+.quick-look-wall {
+  position: relative;
+  width: min(1080px, 100%);
+  min-height: 740px;
+  margin: 0 auto;
+}
+
+.quick-look-shot {
+  position: absolute;
+  width: 46%;
+}
+
+.quick-look-shot img {
+  border-radius: 15px;
+}
+
+.quick-look-node {
+  z-index: 3;
+  top: 0;
+  left: 27%;
+}
+
+.quick-look-bird {
+  z-index: 2;
+  top: 115px;
+  left: 0;
+  transform: rotate(-4deg);
+}
+
+.quick-look-pizza {
+  z-index: 1;
+  top: 115px;
+  right: 0;
+  transform: rotate(4deg);
+}
+
 .start-story {
   grid-template-columns: 1.05fr 0.95fr;
 }
@@ -539,6 +583,10 @@ footer > a:last-child {
     margin: 0 auto;
   }
 
+  .quick-look-wall {
+    min-height: 660px;
+  }
+
   .start-screenshot {
     width: min(85%, 700px);
     justify-self: center;
@@ -624,6 +672,10 @@ footer > a:last-child {
     padding: 100px 20px;
   }
 
+  .quick-look-story {
+    padding: 100px 20px;
+  }
+
   .library-stack {
     min-height: 430px;
   }
@@ -644,6 +696,28 @@ footer > a:last-child {
   .finder-shots,
   .start-screenshot {
     width: 100%;
+  }
+
+  .quick-look-wall {
+    min-height: 440px;
+  }
+
+  .quick-look-shot {
+    width: 62%;
+  }
+
+  .quick-look-node {
+    left: 19%;
+  }
+
+  .quick-look-bird {
+    top: 90px;
+    left: -15%;
+  }
+
+  .quick-look-pizza {
+    top: 90px;
+    right: -15%;
   }
 
   .download-panel {

@@ -142,6 +142,35 @@ export default function App() {
         </div>
       </section>
 
+      <section className="quick-look-story">
+        <div className="section-copy centered">
+          <span className="section-label">Quick Look built in</span>
+          <h2>Preview a card without opening it.</h2>
+          <p>
+            Press the Space bar in Finder to see the saved image and metadata
+            instantly. Quick Look reads the file locally without contacting the
+            original website.
+          </p>
+        </div>
+        <div className="quick-look-wall" aria-label="Quick Look previews of webcard files">
+          <Screenshot
+            className="quick-look-shot quick-look-node"
+            src="./screenshots/quick-look-node.webp"
+            alt="A GitHub webcard displayed in the macOS Quick Look window"
+          />
+          <Screenshot
+            className="quick-look-shot quick-look-bird"
+            src="./screenshots/quick-look-bird.webp"
+            alt="A bird webcard displayed in the macOS Quick Look window"
+          />
+          <Screenshot
+            className="quick-look-shot quick-look-pizza"
+            src="./screenshots/quick-look-pizza.webp"
+            alt="A pizza recipe webcard displayed in the macOS Quick Look window"
+          />
+        </div>
+      </section>
+
       <section className="start-story">
         <Screenshot
           className="start-screenshot"
