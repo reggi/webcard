@@ -652,6 +652,20 @@ enum WebcardFolderFileWriter {
         return destinationURL.standardizedFileURL
     }
 
+    static func writeWebloc(
+        for url: URL,
+        to directoryURL: URL,
+        fileManager: FileManager = .default
+    ) throws -> URL {
+        let destinationURL = try availableDestinationURL(
+            suggestedFilename: WebcardWebloc.suggestedFilename(for: url),
+            in: directoryURL,
+            fileManager: fileManager
+        )
+        try WebcardWebloc.write(url).write(to: destinationURL, options: .atomic)
+        return destinationURL.standardizedFileURL
+    }
+
     static func availableDestinationURL(
         suggestedFilename: String,
         in directoryURL: URL,
@@ -998,6 +1012,97 @@ final class WebcardFolderWindowSession: ObservableObject {
             searchText = ""
             pendingScrollURL = fileURL
             browserModel.refresh()
+        }
+    }
+}
+
+struct WebcardWebLocationDocumentView: View {
+    let fileURL: URL
+    let url: URL
+
+    var body: some View {
+        GeometryReader { proxy in
+            ScrollView {
+                let width = min(max(proxy.size.width - 40, 280), 520)
+                WebcardWebLocationCard(
+                    fileURL: fileURL,
+                    url: url,
+                    width: width,
+                    imageHeight: width * 9 / 16,
+                    metadataHeight: 86,
+                    urlLineLimit: nil
+                )
+                .frame(maxWidth: .infinity)
+                .padding(20)
+            }
+        }
+        .frame(minWidth: 360, minHeight: 420)
+    }
+}
+
+struct WebcardWebLocationCard: View {
+    let fileURL: URL
+    let url: URL
+    let width: CGFloat
+    let imageHeight: CGFloat
+    let metadataHeight: CGFloat
+    let urlLineLimit: Int?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack {
+                Color.blue.opacity(0.1)
+                Image(systemName: "link")
+                    .font(.system(size: min(width * 0.2, 64), weight: .semibold))
+                    .foregroundStyle(.blue)
+            }
+            .frame(width: width, height: imageHeight)
+
+            VStack(alignment: .leading, spacing: WebcardLayoutMetrics.contentInset) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Web Location")
+                        .font(.headline)
+                    Text(url.host ?? fileURL.deletingPathExtension().lastPathComponent)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                    Text(url.absoluteString)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(urlLineLimit ?? 2)
+                        .textSelection(.enabled)
+                }
+                .frame(height: metadataHeight, alignment: .topLeading)
+
+                Button {
+                    NSWorkspace.shared.open(url)
+                } label: {
+                    Label("Open in Browser", systemImage: "safari")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
+                .controlSize(.large)
+                .frame(height: WebcardLayoutMetrics.buttonHeight)
+            }
+            .padding(WebcardLayoutMetrics.contentInset)
+            .frame(width: width, alignment: .topLeading)
+        }
+        .frame(width: width, alignment: .top)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.16), radius: 14, y: 5)
+        .id(fileURL.standardizedFileURL)
+        .contextMenu {
+            Button("Open in Browser") {
+                NSWorkspace.shared.open(url)
+            }
+            Button("Show in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([fileURL])
+            }
         }
     }
 }
@@ -1416,7 +1521,9 @@ struct WebcardFolderView: View {
         width: CGFloat,
         fixedMetadataHeight: CGFloat?
     ) -> some View {
-        if let capture = item.capture, let image = NSImage(data: capture.imageData) {
+        switch item.content {
+        case let .webcard(file):
+            if let capture = file.currentCapture, let image = NSImage(data: capture.imageData) {
             let imageHeight = layoutMode.imageHeight(width: width, imageSize: image.size)
             let metadataHeight = fixedMetadataHeight ?? measuredMetadataHeight(
                 for: item,
@@ -1429,7 +1536,7 @@ struct WebcardFolderView: View {
                 imageHeight: imageHeight,
                 metadataHeight: metadataHeight,
                 maximumMetadataHeight: nil,
-                usesInsecureHTTP: item.file.sourceURL?.scheme?.lowercased() == "http",
+                usesInsecureHTTP: file.sourceURL?.scheme?.lowercased() == "http",
                 masksImage: layoutMode.masksImage,
                 titleLineLimit: layoutMode.titleLineLimit,
                 descriptionLineLimit: layoutMode.descriptionLineLimit,
@@ -1450,6 +1557,22 @@ struct WebcardFolderView: View {
                     }
                 }
             }
+            }
+        case let .webLocation(url):
+            WebcardWebLocationCard(
+                fileURL: item.fileURL,
+                url: url,
+                width: width,
+                imageHeight: layoutMode.imageHeight(
+                    width: width,
+                    imageSize: NSSize(width: 16, height: 9)
+                ),
+                metadataHeight: fixedMetadataHeight ?? measuredMetadataHeight(
+                    for: item,
+                    width: width
+                ),
+                urlLineLimit: layoutMode.urlLineLimit
+            )
         }
     }
 
@@ -1472,11 +1595,11 @@ struct WebcardFolderView: View {
         width: CGFloat
     ) -> CGFloat {
         guard let capture = item.capture else {
-            return 0
+            return 86
         }
         return SelectableMetadataView.height(
             for: capture,
-            usesInsecureHTTP: item.file.sourceURL?.scheme?.lowercased() == "http",
+            usesInsecureHTTP: item.file?.sourceURL?.scheme?.lowercased() == "http",
             width: width - WebcardLayoutMetrics.contentInset * 2,
             titleLineLimit: layoutMode.titleLineLimit,
             descriptionLineLimit: layoutMode.descriptionLineLimit,

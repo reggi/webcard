@@ -1,8 +1,33 @@
 import XCTest
+import UniformTypeIdentifiers
 import WebcardCore
 @testable import Webcard
 
 final class WebcardFolderViewTests: XCTestCase {
+    @MainActor
+    func testDroppedWeblocPreservesItsFileURL() async {
+        let expectedURL = URL(
+            fileURLWithPath: "/tmp/Western Honey Bee.webloc",
+            isDirectory: false
+        )
+        let provider = NSItemProvider()
+        provider.registerDataRepresentation(
+            forTypeIdentifier: UTType.fileURL.identifier,
+            visibility: .all
+        ) { completion in
+            completion(expectedURL.dataRepresentation, nil)
+            return nil
+        }
+
+        let urls = await withCheckedContinuation { continuation in
+            WebcardDroppedFileLoader.load([provider]) {
+                continuation.resume(returning: $0)
+            }
+        }
+
+        XCTAssertEqual(urls, [expectedURL])
+    }
+
     private let fileManager = FileManager.default
 
     func testGridUsesOneCroppedImageHeight() {
@@ -534,6 +559,50 @@ final class WebcardFolderViewTests: XCTestCase {
         XCTAssertNotEqual(first, second)
         XCTAssertTrue(fileManager.fileExists(atPath: first.path))
         XCTAssertTrue(fileManager.fileExists(atPath: second.path))
+    }
+
+    func testFolderWriterCreatesStandardWeblocFallbacksWithoutOverwriting() throws {
+        let root = try makeTemporaryDirectory()
+        defer { try? fileManager.removeItem(at: root) }
+        let url = try XCTUnwrap(
+            URL(string: "https://www.inaturalist.org/taxa/47219-Apis-mellifera")
+        )
+
+        let first = try WebcardFolderFileWriter.writeWebloc(for: url, to: root)
+        let second = try WebcardFolderFileWriter.writeWebloc(for: url, to: root)
+
+        let expectedFilename = WebcardWebloc.suggestedFilename(for: url)
+        XCTAssertEqual(first.lastPathComponent, expectedFilename)
+        XCTAssertEqual(
+            second.lastPathComponent,
+            expectedFilename.replacingOccurrences(of: ".webloc", with: " 2.webloc")
+        )
+        XCTAssertEqual(
+            try WebcardWebloc.read(Data(contentsOf: first)),
+            url
+        )
+    }
+
+    func testDiscoveryRendersWebLocationsAlongsideWebcards() async throws {
+        let root = try makeTemporaryDirectory()
+        defer { try? fileManager.removeItem(at: root) }
+        try writeWebcard(named: "captured", to: root)
+        let failedURL = try XCTUnwrap(
+            URL(string: "https://www.inaturalist.org/taxa/47219-Apis-mellifera")
+        )
+        let fallbackURL = root.appendingPathComponent("western-honey-bee.webloc")
+        try WebcardWebloc.write(failedURL).write(to: fallbackURL)
+
+        let hierarchy = try await DirectoryBrowser().discover(at: root).hierarchy
+
+        XCTAssertEqual(hierarchy.discoveredWebcardCount, 2)
+        XCTAssertEqual(hierarchy.directWebcards.count, 2)
+        let fallback = try XCTUnwrap(
+            hierarchy.directWebcards.first { $0.fileURL.pathExtension == "webloc" }
+        )
+        XCTAssertEqual(fallback.sourceURL, failedURL)
+        XCTAssertNil(fallback.capture)
+        XCTAssertNotNil(WebcardSearch.score(query: "Apis mellifera", for: fallback))
     }
 
     func testImmediateEnumerationDoesNotWalkNestedDirectories() async throws {

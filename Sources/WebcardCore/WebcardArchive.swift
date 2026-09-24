@@ -3,6 +3,73 @@ import Foundation
 import UniformTypeIdentifiers
 import ZIPFoundation
 
+public enum WebcardWebloc {
+    public static func suggestedFilename(for url: URL) -> String {
+        let readableComponents = [url.host()].compactMap { $0 }
+            + url.pathComponents.filter { $0 != "/" }.suffix(3)
+        let readableIdentifier = readableComponents.joined(separator: "-")
+        let slug = sanitizedFilenameComponent(readableIdentifier) ?? "failed-import"
+        let hash = WebcardArchive.sha256(Data(url.absoluteString.utf8)).prefix(10)
+        return "\(slug)-\(hash).webloc"
+    }
+
+    public static func read(_ data: Data) throws -> URL {
+        let propertyList = try PropertyListSerialization.propertyList(
+            from: data,
+            options: [],
+            format: nil
+        )
+        guard let dictionary = propertyList as? [String: Any],
+              let value = dictionary["URL"] as? String,
+              let url = URL(string: value),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else {
+            throw WebcardError.invalidURL
+        }
+        return url
+    }
+
+    public static func write(_ url: URL) throws -> Data {
+        guard let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else {
+            throw WebcardError.invalidURL
+        }
+        return try PropertyListSerialization.data(
+            fromPropertyList: ["URL": url.absoluteString],
+            format: .xml,
+            options: 0
+        )
+    }
+
+    private static func sanitizedFilenameComponent(_ value: String) -> String? {
+        let folded = value
+            .folding(
+                options: [.diacriticInsensitive, .widthInsensitive],
+                locale: Locale(identifier: "en_US_POSIX")
+            )
+            .lowercased()
+        var slug = ""
+        var needsSeparator = false
+
+        for character in folded {
+            if character.isLetter || character.isNumber {
+                if needsSeparator && !slug.isEmpty {
+                    slug.append("-")
+                }
+                slug.append(character)
+                needsSeparator = false
+            } else {
+                needsSeparator = true
+            }
+        }
+
+        guard !slug.isEmpty else {
+            return nil
+        }
+        return String(slug.prefix(100)).trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+    }
+}
+
 public enum WebcardArchive {
     public static let formatVersion = "1.0.0"
     public static let mediaType = "application/vnd.everything.webcard+zip"

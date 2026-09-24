@@ -5,6 +5,47 @@ import ZIPFoundation
 
 struct WebcardArchiveTests {
     @Test
+    func readsAndWritesStandardWeblocFiles() throws {
+        let expectedURL = try #require(
+            URL(string: "https://www.inaturalist.org/taxa/47219-Apis-mellifera")
+        )
+        let fixture = Data(
+            """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+                <key>URL</key>
+                <string>https://www.inaturalist.org/taxa/47219-Apis-mellifera</string>
+            </dict>
+            </plist>
+            """.utf8
+        )
+
+        #expect(try WebcardWebloc.read(fixture) == expectedURL)
+        #expect(try WebcardWebloc.read(WebcardWebloc.write(expectedURL)) == expectedURL)
+    }
+
+    @Test
+    func webLocFilenamesDistinguishURLsOnTheSameDomain() throws {
+        let first = try #require(
+            URL(string: "https://example.com/taxa/47219-Apis-mellifera")
+        )
+        let second = try #require(
+            URL(string: "https://example.com/taxa/47220-Apis-cerana")
+        )
+        let queryVariant = try #require(
+            URL(string: "https://example.com/taxa/47219-Apis-mellifera?view=observations")
+        )
+
+        let firstFilename = WebcardWebloc.suggestedFilename(for: first)
+        #expect(firstFilename.contains("taxa-47219-apis-mellifera"))
+        #expect(firstFilename.hasSuffix(".webloc"))
+        #expect(firstFilename != WebcardWebloc.suggestedFilename(for: second))
+        #expect(firstFilename != WebcardWebloc.suggestedFilename(for: queryVariant))
+    }
+
+    @Test
     func suggestsFilenameFromCurrentCaptureTitle() {
         let capture = WebcardCapture(
             id: "capture",
