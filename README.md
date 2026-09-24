@@ -14,9 +14,9 @@ Choose **File > Open** (Command-O) to open one or more `.webcard` files, folders
 
 Compact windows keep a readable card width and use a centered image crop rather than shrinking the card excessively. Regular windows expand the card to the available width with standard outer insets. The fitted content height is split between the image and metadata using a calibrated ratio, currently about 68% for the image and 32% for metadata. Text is shortened by rendered lines to fit its share while keeping at least one line each of the title and description. The complete URL wraps instead of being truncated, and Open in Browser remains visible whenever the minimum content can fit. Turn off Truncate Text to show the complete image and text with vertical scrolling. If the minimum content still cannot fit, the card scrolls rather than hiding it.
 
-Finder thumbnails and Space bar previews render from the saved archive without network access. Quick Look previews use the card's natural content height, up to the preview height limit, so short metadata does not leave an oversized empty section.
+Finder thumbnails and Space bar previews render from the saved archive without network access. Quick Look previews default to the same 550 by 550 point size as document windows and use the shared card layout.
 
-Refresh also captures useful social metadata when a page provides it, including `og:image:alt` or `twitter:image:alt`, Open Graph content type and locale, article author and timestamps, article section, Twitter card type, and declared image type and dimensions. Image alt text becomes the card image's accessibility label. These fields are searchable in folder view and appear in **Card > Selectable Metadata** without cluttering the main card. Quick Look previews use the card's natural content height, up to the preview height limit, so short metadata does not leave an oversized empty section.
+Refresh also captures useful social metadata when a page provides it, including `og:image:alt` or `twitter:image:alt`, Open Graph content type and locale, article author and timestamps, article section, Twitter card type, and declared image type and dimensions. Image alt text becomes the card image's accessibility label. These fields are searchable in folder view and appear in **Card > Selectable Metadata** without cluttering the main card.
 
 ## Requirements
 
