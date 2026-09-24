@@ -1,36 +1,67 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="background" x1="70" y1="0" x2="1130" y2="630" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFF7FB"/>
-      <stop offset="0.52" stop-color="#F3EBFF"/>
-      <stop offset="1" stop-color="#DDD0FF"/>
+    <linearGradient id="background" x1="80" y1="40" x2="1120" y2="610" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17121D"/>
+      <stop offset="0.58" stop-color="#111017"/>
+      <stop offset="1" stop-color="#291B43"/>
     </linearGradient>
-    <linearGradient id="icon" x1="764" y1="138" x2="1060" y2="474" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#D3BDFF"/>
-      <stop offset="1" stop-color="#7952DE"/>
-    </linearGradient>
-    <linearGradient id="image" x1="811" y1="235" x2="1022" y2="352" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#D274F5"/>
-      <stop offset="1" stop-color="#FFB1A8"/>
-    </linearGradient>
-    <filter id="shadow" x="702" y="84" width="424" height="472" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="26" stdDeviation="24" flood-color="#5831A5" flood-opacity="0.28"/>
+    <radialGradient id="purpleGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1080 40) rotate(132) scale(480 460)">
+      <stop stop-color="#8F55F1" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#8F55F1" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blueGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(90 620) rotate(-48) scale(390 430)">
+      <stop stop-color="#2768D5" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#2768D5" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="screenshotClip">
+      <rect x="640" y="82" width="520" height="425" rx="22"/>
+    </clipPath>
+    <clipPath id="cardClip">
+      <rect x="510" y="238" width="290" height="290" rx="18"/>
+    </clipPath>
+    <filter id="screenshotShadow" x="578" y="35" width="644" height="549" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="30" stdDeviation="26" flood-color="#000000" flood-opacity="0.52"/>
+    </filter>
+    <filter id="cardShadow" x="460" y="198" width="390" height="400" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="24" stdDeviation="20" flood-color="#000000" flood-opacity="0.62"/>
+    </filter>
+    <filter id="iconShadow" x="51" y="37" width="82" height="82" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#7A45D5" flood-opacity="0.45"/>
     </filter>
   </defs>
-  <rect width="1200" height="630" rx="36" fill="url(#background)"/>
-  <circle cx="1125" cy="74" r="205" fill="#A47AFA" fill-opacity="0.18"/>
-  <circle cx="561" cy="684" r="268" fill="#FFBFD7" fill-opacity="0.22"/>
-  <text x="84" y="174" fill="#7652C6" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="22" font-weight="700" letter-spacing="2">WEBCARD FOR macOS</text>
-  <text x="80" y="269" fill="#18131F" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="66" font-weight="700" letter-spacing="-4">Keep the web cards</text>
-  <text x="80" y="347" fill="#18131F" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="66" font-weight="700" letter-spacing="-4">worth saving.</text>
-  <text x="84" y="451" fill="#665E70" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="25" font-weight="400">Portable website previews with private,</text>
-  <text x="84" y="489" fill="#665E70" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="25" font-weight="400">on demand refresh and capture history.</text>
-  <g filter="url(#shadow)">
-    <rect x="750" y="122" width="328" height="376" rx="78" fill="url(#icon)"/>
-    <rect x="788" y="184" width="252" height="251" rx="48" fill="#FCFAFC"/>
-    <rect x="810" y="222" width="208" height="132" rx="28" fill="url(#image)"/>
-    <path d="M810 292C868 277 930 301 978 354H838C822.536 354 810 341.464 810 326V292Z" fill="#B658EB" fill-opacity="0.75"/>
-    <rect x="820" y="378" width="187" height="18" rx="9" fill="#D1CCD9"/>
-    <rect x="820" y="407" width="122" height="16" rx="8" fill="#D1CCD9"/>
+
+  <rect width="1200" height="630" rx="32" fill="url(#background)"/>
+  <rect width="1200" height="630" rx="32" fill="url(#purpleGlow)"/>
+  <rect width="1200" height="630" rx="32" fill="url(#blueGlow)"/>
+
+  <g filter="url(#iconShadow)">
+    <image href="app-icon.png" x="66" y="52" width="52" height="52"/>
+  </g>
+  <text x="132" y="87" fill="#F7F4FA" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="27" font-weight="700" letter-spacing="-0.5">Webcard</text>
+
+  <text x="68" y="177" fill="#BC94FF" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="17" font-weight="700" letter-spacing="2.2">NATIVE macOS APP</text>
+  <circle cx="52" cy="171" r="5" fill="#A66AF8"/>
+
+  <text x="62" y="265" fill="#F8F6FA" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="68" font-weight="700" letter-spacing="-4">Save the web</text>
+  <text x="62" y="340" fill="#F8F6FA" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="68" font-weight="700" letter-spacing="-4">as files</text>
+  <text x="62" y="415" fill="#F8F6FA" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="68" font-weight="700" letter-spacing="-4">you own.</text>
+
+  <text x="68" y="491" fill="#AAA3AF" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="22">Portable website previews that live</text>
+  <text x="68" y="525" fill="#AAA3AF" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="22">as real files on your Mac.</text>
+
+  <g filter="url(#screenshotShadow)">
+    <rect x="640" y="82" width="520" height="425" rx="22" fill="#242126"/>
+    <g clip-path="url(#screenshotClip)">
+      <image href="screenshots/directory-overview.webp" x="640" y="82" width="615" height="425" preserveAspectRatio="xMidYMid slice"/>
+    </g>
+    <rect x="640.5" y="82.5" width="519" height="424" rx="21.5" stroke="#FFFFFF" stroke-opacity="0.14"/>
+  </g>
+
+  <g filter="url(#cardShadow)">
+    <rect x="510" y="238" width="290" height="290" rx="18" fill="#242126"/>
+    <g clip-path="url(#cardClip)">
+      <image href="screenshots/card-command-module.webp" x="510" y="238" width="290" height="290"/>
+    </g>
+    <rect x="510.5" y="238.5" width="289" height="289" rx="17.5" stroke="#FFFFFF" stroke-opacity="0.16"/>
   </g>
 </svg>
