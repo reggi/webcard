@@ -1,0 +1,36 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="background" x1="70" y1="0" x2="1130" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7FB"/>
+      <stop offset="0.52" stop-color="#F3EBFF"/>
+      <stop offset="1" stop-color="#DDD0FF"/>
+    </linearGradient>
+    <linearGradient id="icon" x1="764" y1="138" x2="1060" y2="474" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D3BDFF"/>
+      <stop offset="1" stop-color="#7952DE"/>
+    </linearGradient>
+    <linearGradient id="image" x1="811" y1="235" x2="1022" y2="352" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D274F5"/>
+      <stop offset="1" stop-color="#FFB1A8"/>
+    </linearGradient>
+    <filter id="shadow" x="702" y="84" width="424" height="472" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="26" stdDeviation="24" flood-color="#5831A5" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" rx="36" fill="url(#background)"/>
+  <circle cx="1125" cy="74" r="205" fill="#A47AFA" fill-opacity="0.18"/>
+  <circle cx="561" cy="684" r="268" fill="#FFBFD7" fill-opacity="0.22"/>
+  <text x="84" y="174" fill="#7652C6" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="22" font-weight="700" letter-spacing="2">WEBCARD FOR macOS</text>
+  <text x="80" y="269" fill="#18131F" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="66" font-weight="700" letter-spacing="-4">Keep the web cards</text>
+  <text x="80" y="347" fill="#18131F" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="66" font-weight="700" letter-spacing="-4">worth saving.</text>
+  <text x="84" y="451" fill="#665E70" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="25" font-weight="400">Portable website previews with private,</text>
+  <text x="84" y="489" fill="#665E70" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif" font-size="25" font-weight="400">on demand refresh and capture history.</text>
+  <g filter="url(#shadow)">
+    <rect x="750" y="122" width="328" height="376" rx="78" fill="url(#icon)"/>
+    <rect x="788" y="184" width="252" height="251" rx="48" fill="#FCFAFC"/>
+    <rect x="810" y="222" width="208" height="132" rx="28" fill="url(#image)"/>
+    <path d="M810 292C868 277 930 301 978 354H838C822.536 354 810 341.464 810 326V292Z" fill="#B658EB" fill-opacity="0.75"/>
+    <rect x="820" y="378" width="187" height="18" rx="9" fill="#D1CCD9"/>
+    <rect x="820" y="407" width="122" height="16" rx="8" fill="#D1CCD9"/>
+  </g>
+</svg>
