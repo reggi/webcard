@@ -19,6 +19,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: release-assets-${{ inputs.tag || github.ref_name }}
@@ -64,3 +66,9 @@ jobs:
             "$ARTIFACT" \
             "$ARTIFACT.sha256" \
             --clobber
+
+  website:
+    needs: release
+    uses: ./.github/workflows/pages.yml
+    with:
+      tag: ${{ inputs.tag || github.ref_name }}
