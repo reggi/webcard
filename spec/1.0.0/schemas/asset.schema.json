@@ -1,0 +1,31 @@
+{
+  "$id": "https://webcard.app/spec/1.0.0/schemas/asset.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "byteLength": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "mediaType": {
+      "minLength": 3,
+      "type": "string"
+    },
+    "path": {
+      "pattern": "^assets/sha256/[a-f0-9]{64}\\.[A-Za-z0-9]+$",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "path",
+    "mediaType",
+    "sha256",
+    "byteLength"
+  ],
+  "title": "Webcard asset reference",
+  "type": "object"
+}

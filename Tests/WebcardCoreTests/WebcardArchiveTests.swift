@@ -60,7 +60,7 @@ struct WebcardArchiveTests {
     }
 
     @Test
-    func roundTripsVersionTwoArchive() throws {
+    func roundTripsPublicFormatArchive() throws {
         let date = Date(timeIntervalSince1970: 1_790_196_000)
         let image = Data("image bytes".utf8)
         let capture = WebcardCapture(
@@ -90,7 +90,7 @@ struct WebcardArchiveTests {
         let decoded = try WebcardArchive.read(encoded)
 
         #expect(decoded.sourceURL == source.sourceURL)
-        #expect(decoded.currentCaptureID == source.currentCaptureID)
+        #expect(decoded.currentCaptureID == WebcardArchive.publicCaptureID(for: date))
         #expect(decoded.lastRefreshedAt == capture.capturedAt)
         #expect(decoded.currentCapture?.hasSameContent(as: capture) == true)
         #expect(decoded.currentCapture?.imageData == capture.imageData)
@@ -214,6 +214,57 @@ struct WebcardArchiveTests {
     }
 
     @Test
+    func readsLegacyVersionTwoArchive() throws {
+        let image = Data("legacy version two image".utf8)
+        let digest = WebcardArchive.sha256(image)
+        let captureID = "2026-09-24T04-26-56-575Z"
+        let root = Data(
+            """
+            {
+              "version": 2,
+              "url": "https://example.com/original",
+              "currentCapture": "\(captureID)",
+              "captures": ["\(captureID)"],
+              "lastRefreshedAt": "2026-09-24T04:26:56.575Z"
+            }
+            """.utf8
+        )
+        let capture = Data(
+            """
+            {
+              "canonicalUrl": "https://example.com/article",
+              "title": "Legacy capture",
+              "description": "Version two remains readable.",
+              "siteName": "Example",
+              "image": "images/\(digest).webp",
+              "imageSHA256": "\(digest)",
+              "capturedAt": "2026-09-24T04:26:56.575Z"
+            }
+            """.utf8
+        )
+        let archive = try Archive(accessMode: .create)
+        try add(root, path: "manifest.json", to: archive)
+        try add(capture, path: "captures/\(captureID)/manifest.json", to: archive)
+        try add(image, path: "images/\(digest).webp", to: archive)
+
+        let file = try WebcardArchive.read(try #require(archive.data))
+
+        #expect(file.sourceURL == URL(string: "https://example.com/original"))
+        #expect(file.currentCapture?.title == "Legacy capture")
+        #expect(file.currentCapture?.imageData == image)
+    }
+
+    @Test
+    func rejectsUnsafeArchivePaths() throws {
+        let archive = try Archive(accessMode: .create)
+        try add(Data("unsafe".utf8), path: "../manifest.json", to: archive)
+
+        #expect(throws: WebcardError.self) {
+            try WebcardArchive.read(try #require(archive.data))
+        }
+    }
+
+    @Test
     func detectsCaptureContentChanges() {
         let image = Data("image".utf8)
         let first = WebcardCapture(
@@ -274,9 +325,9 @@ struct WebcardArchiveTests {
             )
         )
         let archive = try Archive(data: data, accessMode: .read)
-        let imageEntries = archive.map(\.path).filter { $0.hasPrefix("images/") }
+        let imageEntries = archive.map(\.path).filter { $0.hasPrefix("assets/sha256/") }
 
-        #expect(imageEntries == ["images/\(imageSHA256).webp"])
+        #expect(imageEntries == ["assets/sha256/\(imageSHA256).webp"])
         #expect(!archive.map(\.path).contains("captures/first/card.webp"))
         #expect(!archive.map(\.path).contains("captures/second/card.webp"))
         #expect(try WebcardArchive.read(data).captures.count == 2)
@@ -306,9 +357,95 @@ struct WebcardArchiveTests {
         let archive = try Archive(data: data, accessMode: .read)
         let decoded = try WebcardArchive.read(data)
 
-        #expect(archive.map(\.path).contains("images/\(iconSHA256).webp"))
+        #expect(archive.map(\.path).contains("assets/sha256/\(iconSHA256).webp"))
         #expect(decoded.currentCapture?.iconData == icon)
         #expect(decoded.currentCapture?.iconSHA256 == iconSHA256)
+    }
+
+    @Test
+    func writesPublicFormatContainerLayout() throws {
+        let image = Data("image".utf8)
+        let date = Date(timeIntervalSince1970: 1_790_196_000)
+        let capture = WebcardCapture(
+            id: "prototype-id",
+            canonicalURL: URL(string: "https://example.com/article")!,
+            title: "Example",
+            summary: "Description",
+            siteName: "Example",
+            imageSHA256: WebcardArchive.sha256(image),
+            capturedAt: date,
+            imageData: image
+        )
+
+        let data = try WebcardArchive.write(
+            WebcardFile(sourceURL: URL(string: "https://example.com")!, captures: [capture])
+        )
+        let archive = try Archive(data: data, accessMode: .read)
+        let captureID = WebcardArchive.publicCaptureID(for: date)
+
+        #expect(archive.first(where: { _ in true })?.path == "mimetype")
+        #expect(archive["mimetype"]?.isCompressed == false)
+        #expect(archive["webcard.json"] != nil)
+        #expect(archive["captures/\(captureID).json"] != nil)
+        #expect(archive["manifest.json"] == nil)
+        #expect(archive.allSatisfy { !$0.isCompressed })
+    }
+
+    @Test
+    func writesDeterministicPublicArchives() throws {
+        let image = Data("deterministic image".utf8)
+        let capture = WebcardCapture(
+            id: "capture",
+            canonicalURL: URL(string: "https://example.com")!,
+            title: "Example",
+            summary: "",
+            siteName: "Example",
+            imageSHA256: WebcardArchive.sha256(image),
+            capturedAt: Date(timeIntervalSince1970: 1_000),
+            imageData: image
+        )
+        let file = WebcardFile(sourceURL: capture.canonicalURL, captures: [capture])
+
+        #expect(try WebcardArchive.write(file) == WebcardArchive.write(file))
+    }
+
+    @Test
+    func preservesExtensionEntries() throws {
+        let image = Data("image".utf8)
+        let extensionData = Data(#"{"rating":5}"#.utf8)
+        let capture = WebcardCapture(
+            id: "capture",
+            canonicalURL: URL(string: "https://example.com")!,
+            title: "Example",
+            summary: "",
+            siteName: "Example",
+            imageSHA256: WebcardArchive.sha256(image),
+            capturedAt: Date(timeIntervalSince1970: 1_000),
+            imageData: image,
+            extensions: [
+                "https://example.test/capture": .object(["rating": .number(5)])
+            ],
+            additionalProperties: ["futureCaptureField": .string("preserved")]
+        )
+        let source = WebcardFile(
+            sourceURL: capture.canonicalURL,
+            captures: [capture],
+            extensions: [
+                "https://example.test/root": .object(["collection": .string("favorites")])
+            ],
+            additionalProperties: ["futureRootField": .boolean(true)],
+            extensionEntries: ["extensions/example.test/annotation.json": extensionData]
+        )
+
+        let first = try WebcardArchive.read(WebcardArchive.write(source))
+        let second = try WebcardArchive.read(WebcardArchive.write(first))
+
+        #expect(first.extensionEntries["extensions/example.test/annotation.json"] == extensionData)
+        #expect(second.extensionEntries == first.extensionEntries)
+        #expect(second.extensions == source.extensions)
+        #expect(second.additionalProperties == source.additionalProperties)
+        #expect(second.currentCapture?.extensions == capture.extensions)
+        #expect(second.currentCapture?.additionalProperties == capture.additionalProperties)
     }
 
     @Test

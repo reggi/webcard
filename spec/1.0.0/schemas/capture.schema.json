@@ -1,0 +1,97 @@
+{
+  "$id": "https://webcard.app/spec/1.0.0/schemas/capture.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "canonicalURL": {
+      "format": "uri",
+      "pattern": "^https?://",
+      "type": "string"
+    },
+    "capturedAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "description": {
+      "maxLength": 2000,
+      "type": "string"
+    },
+    "extensions": {
+      "propertyNames": {
+        "format": "uri",
+        "pattern": "^https://"
+      },
+      "type": "object"
+    },
+    "icon": {
+      "$ref": "asset.schema.json"
+    },
+    "id": {
+      "pattern": "^[0-9]{8}T[0-9]{6}\\.[0-9]{3}Z(?:-[0-9]+)?$",
+      "type": "string"
+    },
+    "image": {
+      "$ref": "asset.schema.json"
+    },
+    "siteName": {
+      "maxLength": 300,
+      "type": "string"
+    },
+    "sourceMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "imageAlt": {
+          "type": "string"
+        },
+        "imageHeight": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "imageMIMEType": {
+          "type": "string"
+        },
+        "imageWidth": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "modifiedTime": {
+          "type": "string"
+        },
+        "publishedTime": {
+          "type": "string"
+        },
+        "section": {
+          "type": "string"
+        },
+        "twitterCard": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "title": {
+      "maxLength": 500,
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "canonicalURL",
+    "title",
+    "description",
+    "siteName",
+    "capturedAt",
+    "image"
+  ],
+  "title": "Webcard capture",
+  "type": "object"
+}

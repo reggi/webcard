@@ -1,0 +1,14 @@
+{
+  "canonicalURL": "https://example.com/",
+  "capturedAt": "2026-09-24T04:26:56.575Z",
+  "description": "A minimal Webcard example.",
+  "id": "20260924T042656.575Z",
+  "image": {
+    "byteLength": 38,
+    "mediaType": "image/webp",
+    "path": "assets/sha256/01ccfcbb2f0635b02dc28020140fae2e23466f5c8a0b431d968b5898dd926412.webp",
+    "sha256": "01ccfcbb2f0635b02dc28020140fae2e23466f5c8a0b431d968b5898dd926412"
+  },
+  "siteName": "Example",
+  "title": "Example"
+}

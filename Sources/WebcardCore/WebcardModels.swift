@@ -1,5 +1,49 @@
 import Foundation
 
+public enum WebcardJSONValue: Codable, Hashable, Sendable {
+    case array([WebcardJSONValue])
+    case boolean(Bool)
+    case number(Double)
+    case object([String: WebcardJSONValue])
+    case string(String)
+    case null
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+        } else if let value = try? container.decode(Bool.self) {
+            self = .boolean(value)
+        } else if let value = try? container.decode(Double.self) {
+            self = .number(value)
+        } else if let value = try? container.decode(String.self) {
+            self = .string(value)
+        } else if let value = try? container.decode([WebcardJSONValue].self) {
+            self = .array(value)
+        } else {
+            self = .object(try container.decode([String: WebcardJSONValue].self))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .array(let value):
+            try container.encode(value)
+        case .boolean(let value):
+            try container.encode(value)
+        case .number(let value):
+            try container.encode(value)
+        case .object(let value):
+            try container.encode(value)
+        case .string(let value):
+            try container.encode(value)
+        case .null:
+            try container.encodeNil()
+        }
+    }
+}
+
 public struct WebcardRequestPlan: Sendable, Equatable {
     public let preferredURL: URL
     public let fallbackURL: URL?
@@ -165,6 +209,8 @@ public struct WebcardCapture: Codable, Hashable, Identifiable, Sendable {
     public let iconSHA256: String?
     public let iconData: Data?
     public let socialMetadata: WebcardSocialMetadata
+    public let extensions: [String: WebcardJSONValue]
+    public let additionalProperties: [String: WebcardJSONValue]
 
     public init(
         id: String,
@@ -179,7 +225,9 @@ public struct WebcardCapture: Codable, Hashable, Identifiable, Sendable {
         iconPath: String? = nil,
         iconSHA256: String? = nil,
         iconData: Data? = nil,
-        socialMetadata: WebcardSocialMetadata = WebcardSocialMetadata()
+        socialMetadata: WebcardSocialMetadata = WebcardSocialMetadata(),
+        extensions: [String: WebcardJSONValue] = [:],
+        additionalProperties: [String: WebcardJSONValue] = [:]
     ) {
         self.id = id
         self.canonicalURL = canonicalURL
@@ -194,6 +242,8 @@ public struct WebcardCapture: Codable, Hashable, Identifiable, Sendable {
         self.iconSHA256 = iconSHA256
         self.iconData = iconData
         self.socialMetadata = socialMetadata
+        self.extensions = extensions
+        self.additionalProperties = additionalProperties
     }
 
     public func hasSameContent(as other: WebcardCapture) -> Bool {
@@ -204,6 +254,8 @@ public struct WebcardCapture: Codable, Hashable, Identifiable, Sendable {
             && imageSHA256 == other.imageSHA256
             && iconSHA256 == other.iconSHA256
             && socialMetadata == other.socialMetadata
+            && extensions == other.extensions
+            && additionalProperties == other.additionalProperties
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -220,6 +272,8 @@ public struct WebcardCapture: Codable, Hashable, Identifiable, Sendable {
         case iconSHA256
         case iconData
         case socialMetadata
+        case extensions
+        case additionalProperties
     }
 }
 
@@ -228,17 +282,26 @@ public struct WebcardFile: Hashable, Sendable {
     public var captures: [WebcardCapture]
     public var currentCaptureID: String?
     public var lastRefreshedAt: Date?
+    public var extensions: [String: WebcardJSONValue]
+    public var additionalProperties: [String: WebcardJSONValue]
+    public var extensionEntries: [String: Data]
 
     public init(
         sourceURL: URL? = nil,
         captures: [WebcardCapture] = [],
         currentCaptureID: String? = nil,
-        lastRefreshedAt: Date? = nil
+        lastRefreshedAt: Date? = nil,
+        extensions: [String: WebcardJSONValue] = [:],
+        additionalProperties: [String: WebcardJSONValue] = [:],
+        extensionEntries: [String: Data] = [:]
     ) {
         self.sourceURL = sourceURL
         self.captures = captures
         self.currentCaptureID = currentCaptureID ?? captures.last?.id
         self.lastRefreshedAt = lastRefreshedAt ?? captures.last?.capturedAt
+        self.extensions = extensions
+        self.additionalProperties = additionalProperties
+        self.extensionEntries = extensionEntries
     }
 
     public var currentCapture: WebcardCapture? {

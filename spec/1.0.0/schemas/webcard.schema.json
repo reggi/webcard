@@ -1,0 +1,47 @@
+{
+  "$id": "https://webcard.app/spec/1.0.0/schemas/webcard.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "captures": {
+      "items": {
+        "pattern": "^captures/[0-9]{8}T[0-9]{6}\\.[0-9]{3}Z(?:-[0-9]+)?\\.json$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "currentCapture": {
+      "pattern": "^captures/[0-9]{8}T[0-9]{6}\\.[0-9]{3}Z(?:-[0-9]+)?\\.json$",
+      "type": "string"
+    },
+    "extensions": {
+      "propertyNames": {
+        "format": "uri",
+        "pattern": "^https://"
+      },
+      "type": "object"
+    },
+    "formatVersion": {
+      "const": "1.0.0"
+    },
+    "lastRefreshedAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "sourceURL": {
+      "format": "uri",
+      "pattern": "^https?://",
+      "type": "string"
+    }
+  },
+  "required": [
+    "formatVersion",
+    "sourceURL",
+    "currentCapture",
+    "captures"
+  ],
+  "title": "Webcard root document",
+  "type": "object"
+}
