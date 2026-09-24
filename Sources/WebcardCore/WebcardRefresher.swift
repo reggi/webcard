@@ -84,7 +84,8 @@ public actor WebcardRefresher {
                 capturedAt: date,
                 imageData: imageData,
                 iconSHA256: iconSHA256,
-                iconData: iconData
+                iconData: iconData,
+                socialMetadata: metadata.socialMetadata
             )
         )
     }
@@ -247,13 +248,14 @@ private enum PublicURLValidator {
     }
 }
 
-private struct HTMLMetadata {
+struct HTMLMetadata {
     let canonicalURL: URL
     let title: String
     let summary: String
     let siteName: String
     let imageURL: URL?
     let iconURL: URL?
+    let socialMetadata: WebcardSocialMetadata
 
     static func parse(_ html: String, pageURL: URL) -> HTMLMetadata {
         var metadata: [String: String] = [:]
@@ -302,6 +304,25 @@ private struct HTMLMetadata {
         )
         let imageValue = metadata["og:image:secure_url"] ?? metadata["og:image"] ?? metadata["twitter:image"]
         let imageURL = imageValue.flatMap { URL(string: $0, relativeTo: pageURL)?.absoluteURL }
+        let socialMetadata = WebcardSocialMetadata(
+            imageAlt: optionalLimited(
+                metadata["og:image:alt"] ?? metadata["twitter:image:alt"],
+                maximum: 2_000
+            ),
+            contentType: optionalLimited(metadata["og:type"], maximum: 200),
+            locale: optionalLimited(metadata["og:locale"], maximum: 100),
+            author: optionalLimited(metadata["article:author"] ?? metadata["author"], maximum: 500),
+            publishedTime: optionalLimited(metadata["article:published_time"], maximum: 200),
+            modifiedTime: optionalLimited(
+                metadata["article:modified_time"] ?? metadata["og:updated_time"],
+                maximum: 200
+            ),
+            section: optionalLimited(metadata["article:section"], maximum: 300),
+            twitterCard: optionalLimited(metadata["twitter:card"], maximum: 100),
+            imageMIMEType: optionalLimited(metadata["og:image:type"], maximum: 100),
+            imageWidth: positiveInteger(metadata["og:image:width"]),
+            imageHeight: positiveInteger(metadata["og:image:height"])
+        )
 
         return HTMLMetadata(
             canonicalURL: canonicalURL,
@@ -309,7 +330,8 @@ private struct HTMLMetadata {
             summary: summary,
             siteName: siteName,
             imageURL: imageURL,
-            iconURL: iconCandidates.max(by: { $0.score < $1.score })?.url
+            iconURL: iconCandidates.max(by: { $0.score < $1.score })?.url,
+            socialMetadata: socialMetadata
         )
     }
 
@@ -374,6 +396,20 @@ private struct HTMLMetadata {
 
     private static func limited(_ value: String, maximum: Int) -> String {
         String(decoded(value).prefix(maximum))
+    }
+
+    private static func optionalLimited(_ value: String?, maximum: Int) -> String? {
+        guard let value else {
+            return nil
+        }
+        return limited(value, maximum: maximum).nilIfEmpty
+    }
+
+    private static func positiveInteger(_ value: String?) -> Int? {
+        guard let value, let number = Int(decoded(value)), number > 0 else {
+            return nil
+        }
+        return number
     }
 
     private static func iconSize(_ value: String) -> Int {

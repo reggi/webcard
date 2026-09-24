@@ -13,12 +13,15 @@ final class MetadataWindowTests: XCTestCase {
         XCTAssertEqual(snapshot.summary, capture.summary)
         XCTAssertEqual(snapshot.url, capture.canonicalURL)
         XCTAssertEqual(snapshot.capturedAt, capture.capturedAt)
+        XCTAssertEqual(snapshot.socialMetadata, capture.socialMetadata)
         XCTAssertTrue(snapshot.usesInsecureHTTP)
         XCTAssertTrue(snapshot.textCapture.imageData.isEmpty)
         XCTAssertNil(snapshot.textCapture.iconData)
         XCTAssertTrue(snapshot.plainText.contains(capture.title))
         XCTAssertTrue(snapshot.plainText.contains(capture.summary))
         XCTAssertTrue(snapshot.plainText.contains(capture.canonicalURL.absoluteString))
+        XCTAssertTrue(snapshot.plainText.contains("A detailed image description"))
+        XCTAssertTrue(snapshot.plainText.contains("Example Author"))
         let encoded = try JSONEncoder().encode(snapshot)
         XCTAssertFalse(String(decoding: encoded, as: UTF8.self).contains("imageData"))
         XCTAssertEqual(try JSONDecoder().decode(MetadataSnapshot.self, from: encoded), snapshot)
@@ -70,7 +73,14 @@ final class MetadataWindowTests: XCTestCase {
             imageSHA256: "fixture-image",
             capturedAt: Date(timeIntervalSince1970: 1000),
             imageData: Data([1, 2, 3]),
-            iconData: Data([4, 5, 6])
+            iconData: Data([4, 5, 6]),
+            socialMetadata: WebcardSocialMetadata(
+                imageAlt: "A detailed image description",
+                contentType: "article",
+                author: "Example Author",
+                imageWidth: 1200,
+                imageHeight: 630
+            )
         )
     }
 }

@@ -1,4 +1,7 @@
+import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
+import WebcardCore
 
 struct WebcardVersionMenuItem: Identifiable {
     let id: String
@@ -55,6 +58,7 @@ struct WebcardCommands: Commands {
                                 Text(version.title)
                             }
                         }
+
                     }
                 }
             }
@@ -72,5 +76,60 @@ struct WebcardCommands: Commands {
             }
             .disabled(state?.selectedCaptureID == nil)
         }
+    }
+}
+
+struct WebcardFolderCommands: Commands {
+    @ObservedObject private var folderSettings = WebcardFolderSettings.shared
+    @ObservedObject private var commandCenter = WebcardFolderCommandCenter.shared
+
+    var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("New Webcard") {
+                NSDocumentController.shared.newDocument(nil)
+            }
+            .keyboardShortcut("n")
+
+            Button("Open…") {
+                presentOpenPanel()
+            }
+            .keyboardShortcut("o")
+        }
+
+        CommandGroup(after: .toolbar) {
+            Divider()
+
+            Menu("Folder Layout") {
+                layoutButton(.masonry)
+                layoutButton(.grid)
+            }
+            .disabled(!commandCenter.hasActiveFolder)
+        }
+    }
+
+    private func layoutButton(_ mode: WebcardFolderLayoutMode) -> some View {
+        Button {
+            folderSettings.layoutMode = mode
+        } label: {
+            if folderSettings.layoutMode == mode {
+                Label(mode.menuTitle, systemImage: "checkmark")
+            } else {
+                Text(mode.menuTitle)
+            }
+        }
+    }
+
+    private func presentOpenPanel() {
+        let panel = NSOpenPanel()
+        panel.title = "Open Webcard or Folder"
+        panel.prompt = "Open"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.allowedContentTypes = [.webcard]
+        guard panel.runModal() == .OK else {
+            return
+        }
+        WebcardOpenRouter.open(panel.urls)
     }
 }

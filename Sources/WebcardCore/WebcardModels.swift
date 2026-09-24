@@ -81,6 +81,76 @@ public enum WebcardError: LocalizedError, Equatable {
     }
 }
 
+public struct WebcardSocialMetadata: Codable, Hashable, Sendable {
+    public let imageAlt: String?
+    public let contentType: String?
+    public let locale: String?
+    public let author: String?
+    public let publishedTime: String?
+    public let modifiedTime: String?
+    public let section: String?
+    public let twitterCard: String?
+    public let imageMIMEType: String?
+    public let imageWidth: Int?
+    public let imageHeight: Int?
+
+    public init(
+        imageAlt: String? = nil,
+        contentType: String? = nil,
+        locale: String? = nil,
+        author: String? = nil,
+        publishedTime: String? = nil,
+        modifiedTime: String? = nil,
+        section: String? = nil,
+        twitterCard: String? = nil,
+        imageMIMEType: String? = nil,
+        imageWidth: Int? = nil,
+        imageHeight: Int? = nil
+    ) {
+        self.imageAlt = imageAlt
+        self.contentType = contentType
+        self.locale = locale
+        self.author = author
+        self.publishedTime = publishedTime
+        self.modifiedTime = modifiedTime
+        self.section = section
+        self.twitterCard = twitterCard
+        self.imageMIMEType = imageMIMEType
+        self.imageWidth = imageWidth
+        self.imageHeight = imageHeight
+    }
+
+    public var isEmpty: Bool {
+        imageAlt == nil
+            && contentType == nil
+            && locale == nil
+            && author == nil
+            && publishedTime == nil
+            && modifiedTime == nil
+            && section == nil
+            && twitterCard == nil
+            && imageMIMEType == nil
+            && imageWidth == nil
+            && imageHeight == nil
+    }
+
+    public var searchableValues: [String] {
+        [
+            imageAlt,
+            contentType,
+            locale,
+            author,
+            publishedTime,
+            modifiedTime,
+            section,
+            twitterCard,
+            imageMIMEType,
+            imageWidth.map(String.init),
+            imageHeight.map(String.init)
+        ].compactMap { $0 }
+    }
+}
+
 public struct WebcardCapture: Codable, Hashable, Identifiable, Sendable {
     public let id: String
     public let canonicalURL: URL
@@ -94,6 +164,7 @@ public struct WebcardCapture: Codable, Hashable, Identifiable, Sendable {
     public let iconPath: String?
     public let iconSHA256: String?
     public let iconData: Data?
+    public let socialMetadata: WebcardSocialMetadata
 
     public init(
         id: String,
@@ -107,7 +178,8 @@ public struct WebcardCapture: Codable, Hashable, Identifiable, Sendable {
         imageData: Data,
         iconPath: String? = nil,
         iconSHA256: String? = nil,
-        iconData: Data? = nil
+        iconData: Data? = nil,
+        socialMetadata: WebcardSocialMetadata = WebcardSocialMetadata()
     ) {
         self.id = id
         self.canonicalURL = canonicalURL
@@ -121,6 +193,7 @@ public struct WebcardCapture: Codable, Hashable, Identifiable, Sendable {
         self.iconPath = iconPath
         self.iconSHA256 = iconSHA256
         self.iconData = iconData
+        self.socialMetadata = socialMetadata
     }
 
     public func hasSameContent(as other: WebcardCapture) -> Bool {
@@ -130,6 +203,7 @@ public struct WebcardCapture: Codable, Hashable, Identifiable, Sendable {
             && siteName == other.siteName
             && imageSHA256 == other.imageSHA256
             && iconSHA256 == other.iconSHA256
+            && socialMetadata == other.socialMetadata
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -145,6 +219,7 @@ public struct WebcardCapture: Codable, Hashable, Identifiable, Sendable {
         case iconPath = "icon"
         case iconSHA256
         case iconData
+        case socialMetadata
     }
 }
 

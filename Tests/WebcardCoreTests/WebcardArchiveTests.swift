@@ -16,7 +16,14 @@ struct WebcardArchiveTests {
             siteName: "Example",
             imageSHA256: WebcardArchive.sha256(image),
             capturedAt: date,
-            imageData: image
+            imageData: image,
+            socialMetadata: WebcardSocialMetadata(
+                imageAlt: "A useful image description",
+                contentType: "article",
+                author: "Example Author",
+                imageWidth: 1200,
+                imageHeight: 630
+            )
         )
         let source = WebcardFile(
             sourceURL: URL(string: "https://example.com")!,
@@ -32,6 +39,47 @@ struct WebcardArchiveTests {
         #expect(decoded.lastRefreshedAt == capture.capturedAt)
         #expect(decoded.currentCapture?.hasSameContent(as: capture) == true)
         #expect(decoded.currentCapture?.imageData == capture.imageData)
+        #expect(decoded.currentCapture?.socialMetadata == capture.socialMetadata)
+    }
+
+    @Test
+    func parsesUsefulSocialMetadata() throws {
+        let html = """
+        <html>
+          <head>
+            <meta property="og:title" content="Social title">
+            <meta property="og:image" content="/card.jpg">
+            <meta property="og:image:alt" content="A nightjar perched on a branch">
+            <meta property="og:image:type" content="image/jpeg">
+            <meta property="og:image:width" content="1200">
+            <meta property="og:image:height" content="630">
+            <meta property="og:type" content="article">
+            <meta property="og:locale" content="en_US">
+            <meta property="article:author" content="Example Author">
+            <meta property="article:published_time" content="2026-09-23T12:00:00Z">
+            <meta property="article:modified_time" content="2026-09-23T13:00:00Z">
+            <meta property="article:section" content="Birds">
+            <meta name="twitter:card" content="summary_large_image">
+          </head>
+        </html>
+        """
+
+        let metadata = HTMLMetadata.parse(
+            html,
+            pageURL: URL(string: "https://example.com/article")!
+        )
+
+        #expect(metadata.socialMetadata.imageAlt == "A nightjar perched on a branch")
+        #expect(metadata.socialMetadata.contentType == "article")
+        #expect(metadata.socialMetadata.locale == "en_US")
+        #expect(metadata.socialMetadata.author == "Example Author")
+        #expect(metadata.socialMetadata.publishedTime == "2026-09-23T12:00:00Z")
+        #expect(metadata.socialMetadata.modifiedTime == "2026-09-23T13:00:00Z")
+        #expect(metadata.socialMetadata.section == "Birds")
+        #expect(metadata.socialMetadata.twitterCard == "summary_large_image")
+        #expect(metadata.socialMetadata.imageMIMEType == "image/jpeg")
+        #expect(metadata.socialMetadata.imageWidth == 1200)
+        #expect(metadata.socialMetadata.imageHeight == 630)
     }
 
     @Test

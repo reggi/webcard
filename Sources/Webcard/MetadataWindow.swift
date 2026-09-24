@@ -10,6 +10,7 @@ struct MetadataSnapshot: Codable, Hashable {
     let url: URL
     let capturedAt: Date
     let usesInsecureHTTP: Bool
+    let socialMetadata: WebcardSocialMetadata
 
     init(capture: WebcardCapture, usesInsecureHTTP: Bool) {
         captureID = capture.id
@@ -19,17 +20,19 @@ struct MetadataSnapshot: Codable, Hashable {
         url = capture.canonicalURL
         capturedAt = capture.capturedAt
         self.usesInsecureHTTP = usesInsecureHTTP
+        socialMetadata = capture.socialMetadata
     }
 
     var textCapture: WebcardCapture {
         WebcardCapture(
             id: captureID, canonicalURL: url, title: title, summary: summary,
-            siteName: siteName, imageSHA256: "", capturedAt: capturedAt, imageData: Data()
+            siteName: siteName, imageSHA256: "", capturedAt: capturedAt, imageData: Data(),
+            socialMetadata: socialMetadata
         )
     }
 
     var plainText: String {
-        """
+        var value = """
         Site: \(siteName)
         Title: \(title)
 
@@ -38,6 +41,33 @@ struct MetadataSnapshot: Codable, Hashable {
         URL: \(url.absoluteString)
         Captured: \(capturedAt.formatted(.iso8601))
         """
+        if !socialMetadata.isEmpty {
+            value += "\n\nSocial Metadata:\n\(socialMetadataText)"
+        }
+        return value
+    }
+
+    var socialMetadataText: String {
+        [
+            labeled("Image alt", socialMetadata.imageAlt),
+            labeled("Content type", socialMetadata.contentType),
+            labeled("Locale", socialMetadata.locale),
+            labeled("Author", socialMetadata.author),
+            labeled("Published", socialMetadata.publishedTime),
+            labeled("Modified", socialMetadata.modifiedTime),
+            labeled("Section", socialMetadata.section),
+            labeled("Twitter card", socialMetadata.twitterCard),
+            labeled("Image type", socialMetadata.imageMIMEType),
+            labeled("Image width", socialMetadata.imageWidth.map(String.init)),
+            labeled("Image height", socialMetadata.imageHeight.map(String.init))
+        ].compactMap { $0 }.joined(separator: "\n")
+    }
+
+    private func labeled(_ label: String, _ value: String?) -> String? {
+        guard let value, !value.isEmpty else {
+            return nil
+        }
+        return "\(label): \(value)"
     }
 }
 
@@ -62,6 +92,16 @@ struct MetadataWindow: View {
                         maximumHeight: nil
                     )
                     .padding(20)
+
+                    if !snapshot.socialMetadata.isEmpty {
+                        Divider()
+                            .padding(.horizontal, 20)
+                        Text(snapshot.socialMetadataText)
+                            .font(.system(.body, design: .monospaced))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(20)
+                    }
                 }
             }
         }

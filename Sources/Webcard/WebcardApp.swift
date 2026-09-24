@@ -4,6 +4,8 @@ import WebcardCore
 
 @main
 struct WebcardApp: App {
+    @NSApplicationDelegateAdaptor(WebcardAppDelegate.self) private var appDelegate
+
     var body: some Scene {
         DocumentGroup(newDocument: WebcardDocument()) { configuration in
             WebcardDocumentView(document: configuration.$document)
@@ -11,6 +13,7 @@ struct WebcardApp: App {
         }
         .commands {
             WebcardCommands()
+            WebcardFolderCommands()
         }
 
         WindowGroup("Selectable Metadata", id: "webcard-metadata", for: MetadataSnapshot.self) { $snapshot in

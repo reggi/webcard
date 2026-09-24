@@ -152,11 +152,13 @@ struct WebcardDocumentView: View {
         maskImage: Bool = false,
         cropPosition: ImageCropPosition = .center
     ) -> some View {
-        Image(nsImage: image)
-            .resizable()
-            .aspectRatio(contentMode: maskImage ? .fill : .fit)
-            .frame(width: width, height: height, alignment: cropPosition.alignment)
-            .clipped()
+        WebcardCardView.cardImage(
+            image,
+            width: width,
+            height: height,
+            maskImage: maskImage,
+            cropPosition: cropPosition
+        )
     }
 
     private func canonicalCard(
@@ -170,56 +172,17 @@ struct WebcardDocumentView: View {
         masksImage: Bool,
         debugSettings: WebcardDebugSettings? = nil
     ) -> some View {
-        return VStack(alignment: .leading, spacing: 0) {
-            Self.cardImage(
-                image, width: width, height: imageHeight,
-                maskImage: debugSettings?.maskImage ?? masksImage,
-                cropPosition: debugSettings?.cropPosition ?? .center
-            )
-                .contextMenu {
-                    Button {
-                            copyImage(image, data: capture.imageData)
-                    } label: {
-                            Label("Copy Image", systemImage: "doc.on.doc")
-                    }
-                }
-
-            VStack(alignment: .leading, spacing: Self.contentInset) {
-                SelectableMetadataView(
-                    capture: capture,
-                    usesInsecureHTTP: usesInsecureHTTP,
-                    layoutWidth: width - Self.contentInset * 2,
-                    maximumHeight: maximumMetadataHeight,
-                    titleLineLimit: debugSettings?.titleLines,
-                    descriptionLineLimit: debugSettings?.descriptionLines
-                )
-                .frame(height: metadataHeight, alignment: .top)
-
-                Button {
-                    NSWorkspace.shared.open(capture.canonicalURL)
-                } label: {
-                    Label("Open in Browser", systemImage: "safari")
-                            .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.blue)
-                .controlSize(.large)
-                .frame(height: Self.buttonHeight)
-            }
-            .padding(Self.contentInset)
-            .frame(
-                width: width,
-                alignment: .topLeading
-            )
-        }
-        .frame(width: width, alignment: .top)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.16), radius: 14, y: 5)
+        WebcardCardView(
+            capture: capture,
+            image: image,
+            width: width,
+            imageHeight: imageHeight,
+            metadataHeight: metadataHeight,
+            maximumMetadataHeight: maximumMetadataHeight,
+            usesInsecureHTTP: usesInsecureHTTP,
+            masksImage: masksImage,
+            debugSettings: debugSettings
+        )
     }
 
     private var emptyState: some View {
@@ -386,13 +349,6 @@ struct WebcardDocumentView: View {
             return document.file.lastRefreshedAt ?? capture.capturedAt
         }
         return capture.capturedAt
-    }
-
-    private func copyImage(_ image: NSImage, data: Data) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.writeObjects([image])
-        pasteboard.setData(data, forType: NSPasteboard.PasteboardType("org.webmproject.webp"))
     }
 
     private func captureLabel(index: Int, capture: WebcardCapture) -> String {

@@ -4,11 +4,15 @@ Webcard is a native macOS document app for creating, opening, refreshing, and ve
 
 Each document window displays one saved card. Use the macOS **Card** menu for **Refresh** (Command-R), **Truncate Text**, and the **Versions** selector. These commands affect the active document window; the window has no control footer or app toolbar. Refresh status appears in the window subtitle. Changed metadata or image content becomes a new dated capture in the document, which can then be saved normally.
 
+Choose **File > Open** (Command-O) to open one or more `.webcard` files, folders, or a mixture of both from the same picker. You can also drag a `.webcard` file or folder onto the Webcard app icon in Finder. Folder windows browse every `.webcard` file in the selected folder. Use **View > Folder Layout** to switch between a masonry layout that preserves each card's natural height and an equal-height row-based grid. Grid cards use a consistent cropped image height, share the tallest visible metadata height, and limit descriptions to two lines. Use the stepper to choose one to eight columns, and use the search field to fuzzy filter by filename, title, description, site name, or URL. Folder cards and individual document cards use the same renderer.
+
 **Card > Selectable Metadata** opens the selected version's full, untruncated metadata in a separate read-only window. Text can be selected and copied, and **Copy All** copies the complete metadata and capture date. This is a snapshot of that version, independent of subsequent selection or refresh changes in the document.
 
 Compact windows keep a readable card width and use a centered image crop rather than shrinking the card excessively. Regular windows expand the card to the available width with standard outer insets. The fitted content height is split between the image and metadata using a calibrated ratio, currently about 68% for the image and 32% for metadata. Text is shortened by rendered lines to fit its share while keeping at least one line each of the title and description. The complete URL wraps instead of being truncated, and Open in Browser remains visible whenever the minimum content can fit. Turn off Truncate Text to show the complete image and text with vertical scrolling. If the minimum content still cannot fit, the card scrolls rather than hiding it.
 
-Finder thumbnails and Space bar previews render from the saved archive without network access.
+Finder thumbnails and Space bar previews render from the saved archive without network access. Quick Look previews use the card's natural content height, up to the preview height limit, so short metadata does not leave an oversized empty section.
+
+Refresh also captures useful social metadata when a page provides it, including `og:image:alt` or `twitter:image:alt`, Open Graph content type and locale, article author and timestamps, article section, Twitter card type, and declared image type and dimensions. Image alt text becomes the card image's accessibility label. These fields are searchable in folder view and appear in **Card > Selectable Metadata** without cluttering the main card. Quick Look previews use the card's natural content height, up to the preview height limit, so short metadata does not leave an oversized empty section.
 
 ## Layout debugging
 

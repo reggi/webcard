@@ -41,6 +41,7 @@ public enum WebcardArchive {
         let capturedAt: Date
         let icon: String?
         let iconSHA256: String?
+        let socialMetadata: WebcardSocialMetadata?
     }
 
     public static func read(_ data: Data) throws -> WebcardFile {
@@ -104,7 +105,8 @@ public enum WebcardArchive {
                 imageSHA256: capture.imageSHA256,
                 capturedAt: capture.capturedAt,
                 icon: sharedIconPath,
-                iconSHA256: capture.iconSHA256
+                iconSHA256: capture.iconSHA256,
+                socialMetadata: capture.socialMetadata.isEmpty ? nil : capture.socialMetadata
             )
             try add(encoder.encode(manifest), at: "\(base)/manifest.json", to: archive)
             if let existing = imagesBySHA256[capture.imageSHA256], existing != capture.imageData {
@@ -235,7 +237,8 @@ public enum WebcardArchive {
                 imageData: imageData,
                 iconPath: captureManifest.icon,
                 iconSHA256: captureManifest.iconSHA256?.lowercased(),
-                iconData: iconData
+                iconData: iconData,
+                socialMetadata: captureManifest.socialMetadata ?? WebcardSocialMetadata()
             )
             try validateCapture(capture)
             return capture
