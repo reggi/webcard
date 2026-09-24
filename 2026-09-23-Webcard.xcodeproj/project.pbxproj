@@ -24,6 +24,7 @@
 		A00000000000000000000011 /* WebcardFolderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* WebcardFolderView.swift */; };
 		A00000000000000000000012 /* WebcardOpenRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* WebcardOpenRouter.swift */; };
 		A00000000000000000000013 /* RecursiveWebcardDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* RecursiveWebcardDiscovery.swift */; };
+		A00000000000000000000014 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017 /* AppIcon.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -79,6 +80,7 @@
 		A10000000000000000000014 /* WebcardFolderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcardFolderView.swift; sourceTree = "<group>"; };
 		A10000000000000000000015 /* WebcardOpenRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcardOpenRouter.swift; sourceTree = "<group>"; };
 		A10000000000000000000016 /* RecursiveWebcardDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecursiveWebcardDiscovery.swift; sourceTree = "<group>"; };
+		A10000000000000000000017 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Resources/AppIcon.icns; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -131,6 +133,7 @@
 				A10000000000000000000014 /* WebcardFolderView.swift */,
 				A10000000000000000000015 /* WebcardOpenRouter.swift */,
 				A10000000000000000000016 /* RecursiveWebcardDiscovery.swift */,
+				A10000000000000000000017 /* AppIcon.icns */,
 				A10000000000000000000005 /* Info.plist */,
 				A1000000000000000000000B /* Webcard.entitlements */,
 			);
@@ -176,6 +179,7 @@
 			buildPhases = (
 				A90000000000000000000001 /* Sources */,
 				A60000000000000000000001 /* Frameworks */,
+				A90000000000000000000004 /* Resources */,
 				A40000000000000000000001 /* Embed App Extensions */,
 			);
 			buildRules = (
@@ -275,6 +279,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A90000000000000000000004 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000014 /* AppIcon.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A90000000000000000000001 /* Sources */ = {

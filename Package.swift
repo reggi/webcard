@@ -26,7 +26,7 @@ let package = Package(
         .executableTarget(
             name: "Webcard",
             dependencies: ["WebcardCore"],
-            exclude: ["Info.plist"]
+            exclude: ["Info.plist", "Resources"]
         ),
         .testTarget(
             name: "WebcardCoreTests",

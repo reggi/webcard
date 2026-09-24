@@ -2,6 +2,13 @@ import SwiftUI
 import UniformTypeIdentifiers
 import WebcardCore
 
+enum WebcardDocumentWindowMetrics {
+    static let minimumWidth: CGFloat = 360
+    static let minimumHeight: CGFloat = 420
+    static let defaultWidth: CGFloat = 550
+    static let defaultHeight: CGFloat = 550
+}
+
 @main
 struct WebcardApp: App {
     @NSApplicationDelegateAdaptor(WebcardAppDelegate.self) private var appDelegate
@@ -9,8 +16,17 @@ struct WebcardApp: App {
     var body: some Scene {
         DocumentGroup(newDocument: WebcardDocument()) { configuration in
             WebcardDocumentView(document: configuration.$document)
-                .frame(minWidth: 360, idealWidth: 460, minHeight: 420, idealHeight: 620)
+                .frame(
+                    minWidth: WebcardDocumentWindowMetrics.minimumWidth,
+                    idealWidth: WebcardDocumentWindowMetrics.defaultWidth,
+                    minHeight: WebcardDocumentWindowMetrics.minimumHeight,
+                    idealHeight: WebcardDocumentWindowMetrics.defaultHeight
+                )
         }
+        .defaultSize(
+            width: WebcardDocumentWindowMetrics.defaultWidth,
+            height: WebcardDocumentWindowMetrics.defaultHeight
+        )
         .commands {
             WebcardCommands()
             WebcardFolderCommands()

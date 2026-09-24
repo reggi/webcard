@@ -29,7 +29,7 @@
                 <string>com.reggi.webcard</string>
             </array>
             <key>QLThumbnailMinimumDimension</key>
-            <integer>32</integer>
+            <integer>16</integer>
         </dict>
         <key>NSExtensionPointIdentifier</key>
         <string>com.apple.quicklook.thumbnail</string>

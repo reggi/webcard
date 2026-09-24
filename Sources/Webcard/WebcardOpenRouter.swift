@@ -16,8 +16,16 @@ final class WebcardAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+           let icon = NSImage(contentsOf: iconURL) {
+            NSApplication.shared.applicationIconImage = icon
+        }
+
+        let isDefaultLaunch = Self.isDefaultLaunch(notification)
         DispatchQueue.main.async { [weak self] in
-            guard let self, !openedItemsAtLaunch else {
+            guard let self,
+                  isDefaultLaunch,
+                  !openedItemsAtLaunch else {
                 return
             }
 
@@ -28,6 +36,11 @@ final class WebcardAppDelegate: NSObject, NSApplicationDelegate {
             documents.forEach { $0.close() }
             showStartWindow()
         }
+    }
+
+    static func isDefaultLaunch(_ notification: Notification) -> Bool {
+        (notification.userInfo?[NSApplication.launchIsDefaultUserInfoKey] as? NSNumber)?
+            .boolValue == true
     }
 
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {

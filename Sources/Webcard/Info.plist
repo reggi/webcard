@@ -10,6 +10,8 @@
     <string>Webcard</string>
     <key>CFBundleIdentifier</key>
     <string>com.reggi.webcard</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon.icns</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
@@ -38,6 +40,8 @@
             </array>
             <key>UTTypeDescription</key>
             <string>Webcard Document</string>
+            <key>UTTypeIconFile</key>
+            <string>AppIcon.icns</string>
             <key>UTTypeIdentifier</key>
             <string>com.reggi.webcard</string>
             <key>UTTypeTagSpecification</key>
@@ -60,6 +64,8 @@
             </array>
             <key>CFBundleTypeName</key>
             <string>Webcard Document</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>AppIcon.icns</string>
             <key>CFBundleTypeRole</key>
             <string>Editor</string>
             <key>LSHandlerRank</key>

@@ -3,6 +3,28 @@ import XCTest
 @testable import Webcard
 
 final class WebcardStartupTests: XCTestCase {
+    func testSingleDocumentWindowDefaultsTo550PointSquare() {
+        XCTAssertEqual(WebcardDocumentWindowMetrics.defaultWidth, 550)
+        XCTAssertEqual(WebcardDocumentWindowMetrics.defaultHeight, 550)
+        XCTAssertEqual(WebcardDocumentWindowMetrics.minimumWidth, 360)
+        XCTAssertEqual(WebcardDocumentWindowMetrics.minimumHeight, 420)
+    }
+
+    @MainActor
+    func testStartWindowIsOnlyEligibleForDirectAppLaunch() {
+        let directLaunch = Notification(
+            name: NSApplication.didFinishLaunchingNotification,
+            userInfo: [NSApplication.launchIsDefaultUserInfoKey: true]
+        )
+        let documentLaunch = Notification(
+            name: NSApplication.didFinishLaunchingNotification,
+            userInfo: [NSApplication.launchIsDefaultUserInfoKey: false]
+        )
+
+        XCTAssertTrue(WebcardAppDelegate.isDefaultLaunch(directLaunch))
+        XCTAssertFalse(WebcardAppDelegate.isDefaultLaunch(documentLaunch))
+    }
+
     @MainActor
     func testUntitledRequestIsHandledByReusingStartWindowWithoutCreatingDocument() {
         let application = NSApplication.shared

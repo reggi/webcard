@@ -10,10 +10,10 @@ final class ThumbnailProvider: QLThumbnailProvider {
         do {
             let data = try Data(contentsOf: request.fileURL, options: .mappedIfSafe)
             let file = try WebcardArchive.read(data)
-            guard let imageData = file.currentCapture?.imageData,
-                  let image = NSImage(data: imageData) else {
+            guard let capture = file.currentCapture else {
                 throw WebcardError.missingCapture
             }
+            let image = try thumbnailImage(for: capture, maximumSize: request.maximumSize)
             let targetSize = fittedSize(image.size, inside: request.maximumSize)
             let reply = QLThumbnailReply(contextSize: targetSize) {
                 let rect = CGRect(origin: .zero, size: targetSize)
@@ -26,6 +26,22 @@ final class ThumbnailProvider: QLThumbnailProvider {
         } catch {
             handler(nil, error)
         }
+    }
+
+    private func thumbnailImage(
+        for capture: WebcardCapture,
+        maximumSize: CGSize
+    ) throws -> NSImage {
+        let maximumDimension = max(maximumSize.width, maximumSize.height)
+        if maximumDimension <= 64,
+           let iconData = capture.iconData,
+           let icon = NSImage(data: iconData) {
+            return icon
+        }
+        guard let image = NSImage(data: capture.imageData) else {
+            throw WebcardError.invalidImage
+        }
+        return image
     }
 
     private func fittedSize(_ size: CGSize, inside bounds: CGSize) -> CGSize {
