@@ -1046,8 +1046,10 @@ struct WebcardFolderView: View {
                                 : "No webcards have been discovered yet. The bounded scan was incomplete."
                         )
                     )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if visibleHierarchy == nil, hasSearchQuery {
                     ContentUnavailableView.search(text: searchText)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     gallery
                 }
