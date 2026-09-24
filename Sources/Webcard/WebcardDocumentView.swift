@@ -4,20 +4,15 @@ import WebcardCore
 
 struct WebcardDocumentView: View {
     private static let outerPadding = WebcardLayoutMetrics.outerPadding
-    private static let contentInset = WebcardLayoutMetrics.contentInset
-    private static let buttonHeight = WebcardLayoutMetrics.buttonHeight
 
     @Binding var document: WebcardDocument
-    @Environment(\.openWindow) private var openWindow
     @State private var selectedCaptureID: String?
-    @State private var address = ""
     @State private var isRefreshing = false
+    @State private var alertTitle = "Refresh Failed"
     @State private var statusMessage: String?
     @State private var errorMessage: String?
     @State private var truncatesText = true
-    @State private var layoutDebugWindow: NSWindow?
-    @State private var debugSettings = WebcardDebugSettings()
-    @State private var viewportSize = CGSize.zero
+    @State private var metadataWindow: NSWindow?
 
     private let refresher = WebcardRefresher()
 
@@ -30,21 +25,18 @@ struct WebcardDocumentView: View {
         VStack(spacing: 0) {
             if let capture = selectedCapture {
                 card(capture)
-            } else {
-                emptyState
             }
         }
         .focusedSceneValue(\.webcardCommands, commandState)
         .navigationSubtitle(statusMessage ?? "")
         .task {
             selectedCaptureID = document.file.currentCaptureID
-            address = document.file.sourceURL?.absoluteString ?? ""
         }
         .onDisappear {
-            layoutDebugWindow?.close()
-            layoutDebugWindow = nil
+            metadataWindow?.close()
+            metadataWindow = nil
         }
-        .alert("Refresh Failed", isPresented: errorIsPresented) {
+        .alert(alertTitle, isPresented: errorIsPresented) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage ?? "The webcard could not be refreshed.")
@@ -55,12 +47,7 @@ struct WebcardDocumentView: View {
         GeometryReader { geometry in
             if let image = NSImage(data: capture.imageData) {
                 let usesInsecureHTTP = document.file.sourceURL?.scheme?.lowercased() == "http"
-                let layout = debugSettings.enabled ? Self.desiredLayout(
-                    capture: capture,
-                    imageSize: image.size,
-                    usesInsecureHTTP: usesInsecureHTTP,
-                    settings: debugSettings
-                ) : Self.cardLayout(
+                let layout = Self.cardLayout(
                     capture: capture,
                     availableSize: geometry.size,
                     imageSize: image.size,
@@ -75,17 +62,10 @@ struct WebcardDocumentView: View {
                     metadataHeight: layout.metadataHeight,
                     maximumMetadataHeight: layout.maximumMetadataHeight,
                     usesInsecureHTTP: usesInsecureHTTP,
-                    masksImage: layout.masksImage(image.size),
-                    debugSettings: debugSettings.enabled ? debugSettings : nil
+                    masksImage: layout.masksImage(image.size)
                 )
 
-                if debugSettings.enabled {
-                    ScrollView([.horizontal, .vertical]) {
-                        content
-                            .padding(Self.outerPadding)
-                            .frame(minWidth: geometry.size.width, minHeight: geometry.size.height, alignment: .top)
-                    }
-                } else if truncatesText && layout.paddedHeight <= geometry.size.height + 0.5 {
+                if truncatesText && layout.paddedHeight <= geometry.size.height + 0.5 {
                     content
                         .padding(.vertical, layout.verticalPadding)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -96,10 +76,6 @@ struct WebcardDocumentView: View {
                             .frame(maxWidth: .infinity)
                     }
                 }
-                Color.clear
-                    .allowsHitTesting(false)
-                    .onAppear { viewportSize = geometry.size }
-                    .onChange(of: geometry.size) { _, size in viewportSize = size }
             }
         }
     }
@@ -120,44 +96,17 @@ struct WebcardDocumentView: View {
         )
     }
 
-    static func desiredLayout(
-        capture: WebcardCapture,
-        imageSize: CGSize,
-        usesInsecureHTTP: Bool,
-        settings: WebcardDebugSettings
-    ) -> WebcardCardLayout {
-        let imageHeight = settings.maskImage
-            ? max(1, settings.imageHeight)
-            : settings.cardWidth * imageSize.height / imageSize.width
-        let metadataHeight = SelectableMetadataView.height(
-            for: capture,
-            usesInsecureHTTP: usesInsecureHTTP,
-            width: settings.cardWidth - contentInset * 2,
-            titleLineLimit: settings.titleLines,
-            descriptionLineLimit: settings.descriptionLines
-        )
-        return WebcardCardLayout(
-            width: settings.cardWidth,
-            imageHeight: imageHeight,
-            metadataHeight: metadataHeight,
-            maximumMetadataHeight: nil,
-            paddedHeight: imageHeight + metadataHeight + contentInset * 3 + buttonHeight + outerPadding * 2
-        )
-    }
-
     static func cardImage(
         _ image: NSImage,
         width: CGFloat,
         height: CGFloat,
-        maskImage: Bool = false,
-        cropPosition: ImageCropPosition = .center
+        maskImage: Bool = false
     ) -> some View {
         WebcardCardView.cardImage(
             image,
             width: width,
             height: height,
-            maskImage: maskImage,
-            cropPosition: cropPosition
+            maskImage: maskImage
         )
     }
 
@@ -169,8 +118,7 @@ struct WebcardDocumentView: View {
         metadataHeight: CGFloat,
         maximumMetadataHeight: CGFloat?,
         usesInsecureHTTP: Bool,
-        masksImage: Bool,
-        debugSettings: WebcardDebugSettings? = nil
+        masksImage: Bool
     ) -> some View {
         WebcardCardView(
             capture: capture,
@@ -180,37 +128,14 @@ struct WebcardDocumentView: View {
             metadataHeight: metadataHeight,
             maximumMetadataHeight: maximumMetadataHeight,
             usesInsecureHTTP: usesInsecureHTTP,
-            masksImage: masksImage,
-            debugSettings: debugSettings
+            masksImage: masksImage
         )
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "rectangle.stack.badge.plus")
-                .font(.system(size: 42))
-                .foregroundStyle(.secondary)
-
-            Text("Create a Webcard")
-                .font(.title2.weight(.semibold))
-
-            Text("Enter a public website address, then choose Card > Refresh or press Return to create the first saved capture.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-
-            TextField("example.com or https://example.com", text: $address)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 420)
-                .onSubmit(refresh)
-        }
-        .padding(32)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var commandState: WebcardCommandState {
         WebcardCommandState(
             truncatesText: $truncatesText,
-            canChangeTruncation: !debugSettings.enabled,
+            canChangeTruncation: true,
             canRefresh: !isRefreshing && refreshPlan != nil,
             isRefreshing: isRefreshing,
             versions: document.file.captures.enumerated().reversed().map { index, capture in
@@ -222,77 +147,48 @@ struct WebcardDocumentView: View {
                 selectedCaptureID = id
                 statusMessage = id == document.file.currentCaptureID ? nil : "Viewing an older capture."
             },
-            openLayoutDebug: openLayoutDebug,
-            openMetadata: {
-                if let capture = selectedCapture {
-                    openWindow(
-                        id: "webcard-metadata",
-                        value: MetadataSnapshot(
-                            capture: capture,
-                            usesInsecureHTTP: document.file.sourceURL?.scheme?.lowercased() == "http"
-                        )
-                    )
-                }
-            }
+            openMetadata: openMetadata
         )
     }
 
-    private func openLayoutDebug() {
-        if let layoutDebugWindow {
+    private func openMetadata() {
+        guard let capture = selectedCapture else {
+            return
+        }
+        let snapshot = MetadataSnapshot(
+            capture: capture,
+            usesInsecureHTTP: document.file.sourceURL?.scheme?.lowercased() == "http"
+        )
+        let rootView = MetadataWindow(snapshot: snapshot)
+
+        if let metadataWindow {
+            metadataWindow.title = snapshot.title.isEmpty ? "Selectable Metadata" : snapshot.title
+            metadataWindow.contentViewController = NSHostingController(rootView: rootView)
             NSApp.activate(ignoringOtherApps: true)
-            layoutDebugWindow.makeKeyAndOrderFront(nil)
+            metadataWindow.makeKeyAndOrderFront(nil)
             return
         }
 
-        let document = $document
-        let selectedCaptureID = $selectedCaptureID
-        let viewport = $viewportSize
-        let truncatesText = $truncatesText
-        let settings = $debugSettings
-        let rootView = LayoutDebugPanel(
-            viewport: viewport,
-            settings: settings
-        ) {
-            let file = document.wrappedValue.file
-            let captureID = selectedCaptureID.wrappedValue ?? file.currentCaptureID
-            guard let capture = file.captures.first(where: { $0.id == captureID }) ?? file.currentCapture else {
-                throw CocoaError(
-                    .fileReadUnknown,
-                    userInfo: [NSLocalizedDescriptionKey: "No webcard capture is available to debug."]
-                )
-            }
-            return try LayoutDebugCapture.json(
-                capture: capture,
-                viewport: viewport.wrappedValue,
-                usesInsecureHTTP: file.sourceURL?.scheme?.lowercased() == "http",
-                truncatesText: truncatesText.wrappedValue,
-                settings: settings.wrappedValue
-            )
-        }
-
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 400, height: 640),
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 520),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        window.title = "Layout Debug"
+        window.title = snapshot.title.isEmpty ? "Selectable Metadata" : snapshot.title
         window.contentViewController = NSHostingController(rootView: rootView)
-        window.minSize = NSSize(width: 360, height: 560)
+        window.minSize = NSSize(width: 360, height: 280)
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
         window.center()
-        layoutDebugWindow = window
+        metadataWindow = window
 
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
 
     private var refreshPlan: WebcardRequestPlan? {
-        if let sourceURL = document.file.sourceURL {
-            return WebcardRequestPlan(url: sourceURL)
-        }
-        return WebcardAddress.requestPlan(from: address)
+        document.file.sourceURL.map(WebcardRequestPlan.init(url:))
     }
 
     private var errorIsPresented: Binding<Bool> {
@@ -307,6 +203,7 @@ struct WebcardDocumentView: View {
             return
         }
         isRefreshing = true
+        alertTitle = "Refresh Failed"
         statusMessage = "Refreshing…"
         errorMessage = nil
 
@@ -320,14 +217,12 @@ struct WebcardDocumentView: View {
                         selectedCaptureID = document.file.currentCaptureID
                         if document.file.sourceURL != result.sourceURL {
                             document.file.sourceURL = result.sourceURL
-                            address = result.sourceURL.absoluteString
                             statusMessage = "Secure source URL updated. Save the document to keep it."
                         } else {
                             statusMessage = "Webcard is current."
                         }
                     } else {
                         document.file.sourceURL = result.sourceURL
-                        address = result.sourceURL.absoluteString
                         document.file.append(capture)
                         selectedCaptureID = capture.id
                         statusMessage = "New capture added. Save the document to keep it."

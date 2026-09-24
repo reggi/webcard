@@ -15,14 +15,6 @@ struct WebcardApp: App {
             WebcardCommands()
             WebcardFolderCommands()
         }
-
-        WindowGroup("Selectable Metadata", id: "webcard-metadata", for: MetadataSnapshot.self) { $snapshot in
-            if let snapshot {
-                MetadataWindow(snapshot: snapshot)
-            }
-        }
-        .defaultSize(width: 560, height: 520)
-        .commandsRemoved()
     }
 }
 
@@ -49,7 +41,7 @@ struct WebcardDocument: FileDocument {
             throw CocoaError(
                 .fileWriteUnknown,
                 userInfo: [
-                    NSLocalizedDescriptionKey: "Choose Card > Refresh to create the first capture before saving this webcard."
+                    NSLocalizedDescriptionKey: "Create the first capture from the app start window before saving this webcard."
                 ]
             )
         }

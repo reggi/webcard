@@ -3,7 +3,18 @@ import CoreText
 import Darwin
 import Foundation
 import ImageIO
+import WebKit
 import WebP
+
+public enum WebcardCaptureProgress: Sendable, Equatable {
+    case loadingPage
+    case readingMetadata
+    case loadingImage
+    case creatingPreview
+    case loadingIcon
+    case buildingCard
+    case retryingWithoutTLS
+}
 
 public actor WebcardRefresher {
     private static let maximumHTMLSize = 2 * 1024 * 1024
@@ -11,15 +22,20 @@ public actor WebcardRefresher {
 
     public init() {}
 
-    public func capture(plan: WebcardRequestPlan, at date: Date = Date()) async throws -> WebcardRefreshResult {
+    public func capture(
+        plan: WebcardRequestPlan,
+        at date: Date = Date(),
+        progress: (@MainActor @Sendable (WebcardCaptureProgress) -> Void)? = nil
+    ) async throws -> WebcardRefreshResult {
         do {
-            return try await capture(url: plan.preferredURL, at: date)
+            return try await capture(url: plan.preferredURL, at: date, progress: progress)
         } catch let secureError {
             guard let fallbackURL = plan.fallbackURL else {
                 throw secureError
             }
             do {
-                return try await capture(url: fallbackURL, at: date)
+                await progress?(.retryingWithoutTLS)
+                return try await capture(url: fallbackURL, at: date, progress: progress)
             } catch {
                 throw WebcardError.invalidArchive(
                     "HTTPS failed: \(secureError.localizedDescription) HTTP fallback failed: \(error.localizedDescription)"
@@ -28,38 +44,41 @@ public actor WebcardRefresher {
         }
     }
 
-    private func capture(url: URL, at date: Date) async throws -> WebcardRefreshResult {
+    private func capture(
+        url: URL,
+        at date: Date,
+        progress: (@MainActor @Sendable (WebcardCaptureProgress) -> Void)?
+    ) async throws -> WebcardRefreshResult {
         let normalizedURL = try PublicURLValidator.normalized(url)
         try PublicURLValidator.validate(normalizedURL)
 
-        let pageRequest = request(
+        await progress?(.loadingPage)
+        let page = try await BrowserPageLoader.load(
             url: normalizedURL,
-            accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            referer: normalizedURL.originRoot
+            maximumSize: Self.maximumHTMLSize
         )
-        let page = try await fetch(pageRequest, maximumSize: Self.maximumHTMLSize)
-        let contentType = page.response.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
-        guard contentType.contains("text/html") || contentType.contains("application/xhtml+xml") else {
-            throw WebcardError.invalidArchive("The URL did not return an HTML page.")
-        }
-        let finalURL = try PublicURLValidator.normalized(page.response.url ?? normalizedURL)
+        let finalURL = try PublicURLValidator.normalized(page.url)
         try PublicURLValidator.validate(finalURL)
-        let metadata = HTMLMetadata.parse(String(decoding: page.data, as: UTF8.self), pageURL: finalURL)
+        await progress?(.readingMetadata)
+        let metadata = HTMLMetadata.parse(page.html, pageURL: finalURL)
 
         let imageData: Data
         if let imageURL = metadata.imageURL {
+            await progress?(.loadingImage)
             try PublicURLValidator.validate(imageURL)
-            let imageRequest = request(url: imageURL, accept: "image/*", referer: nil)
+            let imageRequest = request(url: imageURL, accept: "image/*", referer: finalURL.absoluteString)
             let imageResponse = try await fetch(imageRequest, maximumSize: Self.maximumImageSize)
             guard imageResponse.response.value(forHTTPHeaderField: "Content-Type")?.lowercased().hasPrefix("image/") == true else {
                 throw WebcardError.invalidImage
             }
             imageData = try WebcardImageEncoder.encode(imageResponse.data)
         } else {
+            await progress?(.creatingPreview)
             imageData = try WebcardImageEncoder.fallback(title: metadata.title, siteName: metadata.siteName)
         }
         let iconData: Data?
         if let iconURL = metadata.iconURL {
+            await progress?(.loadingIcon)
             try PublicURLValidator.validate(iconURL)
             let iconRequest = request(url: iconURL, accept: "image/*", referer: nil)
             let iconResponse = try await fetch(iconRequest, maximumSize: Self.maximumImageSize)
@@ -72,6 +91,7 @@ public actor WebcardRefresher {
         }
         let iconSHA256 = iconData.map(WebcardArchive.sha256)
 
+        await progress?(.buildingCard)
         return WebcardRefreshResult(
             sourceURL: normalizedURL,
             capture: WebcardCapture(
@@ -131,6 +151,176 @@ public actor WebcardRefresher {
     }
 }
 
+private struct BrowserPage: Sendable {
+    let url: URL
+    let html: String
+}
+
+@MainActor
+private final class BrowserPageLoader: NSObject, WKNavigationDelegate {
+    private static let timeout: Duration = .seconds(12)
+
+    private let maximumSize: Int
+    private var continuation: CheckedContinuation<BrowserPage, Error>?
+    private var navigationCount = 0
+    private var responseError: Error?
+    private var timeoutTask: Task<Void, Never>?
+    private lazy var webView: WKWebView = {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .default()
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.applicationNameForUserAgent = Self.safariApplicationName
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = self
+        return webView
+    }()
+
+    private static var safariApplicationName: String {
+        let version = Bundle(path: "/Applications/Safari.app")?
+            .object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        return "Version/\(version ?? "17.6") Safari/605.1.15"
+    }
+
+    private init(maximumSize: Int) {
+        self.maximumSize = maximumSize
+    }
+
+    static func load(url: URL, maximumSize: Int) async throws -> BrowserPage {
+        let loader = BrowserPageLoader(maximumSize: maximumSize)
+        return try await loader.load(url: url)
+    }
+
+    private func load(url: URL) async throws -> BrowserPage {
+        try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+            var request = URLRequest(url: url)
+            request.timeoutInterval = Self.timeout.timeInterval
+            request.cachePolicy = .useProtocolCachePolicy
+            webView.load(request)
+            timeoutTask = Task { [weak self] in
+                try? await Task.sleep(for: Self.timeout)
+                self?.finish(
+                    throwing: WebcardError.invalidArchive("The website request timed out.")
+                )
+            }
+        }
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
+    ) {
+        guard navigationAction.targetFrame?.isMainFrame != false,
+              let url = navigationAction.request.url else {
+            decisionHandler(.allow)
+            return
+        }
+
+        navigationCount += 1
+        guard navigationCount <= 6,
+              (try? PublicURLValidator.validate(url)) != nil else {
+            responseError = navigationCount > 6
+                ? WebcardError.invalidArchive("The website redirected too many times.")
+                : WebcardError.privateURL
+            decisionHandler(.cancel)
+            return
+        }
+        decisionHandler(.allow)
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationResponse: WKNavigationResponse,
+        decisionHandler: @escaping @MainActor (WKNavigationResponsePolicy) -> Void
+    ) {
+        guard navigationResponse.isForMainFrame,
+              let response = navigationResponse.response as? HTTPURLResponse else {
+            decisionHandler(.allow)
+            return
+        }
+
+        guard (200..<300).contains(response.statusCode) else {
+            responseError = WebcardError.invalidArchive(
+                "The website returned HTTP \(response.statusCode)."
+            )
+            decisionHandler(.cancel)
+            return
+        }
+        let contentType = response.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+        guard contentType.contains("text/html") || contentType.contains("application/xhtml+xml") else {
+            responseError = WebcardError.invalidArchive("The URL did not return an HTML page.")
+            decisionHandler(.cancel)
+            return
+        }
+        let declaredLength = response.expectedContentLength
+        guard declaredLength <= 0 || declaredLength <= maximumSize else {
+            responseError = WebcardError.resourceTooLarge
+            decisionHandler(.cancel)
+            return
+        }
+        decisionHandler(.allow)
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        Task {
+            do {
+                guard let url = webView.url else {
+                    throw WebcardError.invalidArchive("The website returned an invalid response.")
+                }
+                let result = try await webView.evaluateJavaScript(
+                    "document.documentElement.outerHTML"
+                )
+                guard let html = result as? String else {
+                    throw WebcardError.invalidArchive("The website returned an invalid HTML page.")
+                }
+                guard html.utf8.count <= maximumSize else {
+                    throw WebcardError.resourceTooLarge
+                }
+                finish(returning: BrowserPage(url: url, html: html))
+            } catch {
+                finish(throwing: error)
+            }
+        }
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        didFail navigation: WKNavigation!,
+        withError error: Error
+    ) {
+        finish(throwing: responseError ?? error)
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        didFailProvisionalNavigation navigation: WKNavigation!,
+        withError error: Error
+    ) {
+        finish(throwing: responseError ?? error)
+    }
+
+    private func finish(returning page: BrowserPage) {
+        guard let continuation else {
+            return
+        }
+        self.continuation = nil
+        timeoutTask?.cancel()
+        webView.stopLoading()
+        continuation.resume(returning: page)
+    }
+
+    private func finish(throwing error: Error) {
+        guard let continuation else {
+            return
+        }
+        self.continuation = nil
+        timeoutTask?.cancel()
+        webView.stopLoading()
+        continuation.resume(throwing: error)
+    }
+}
+
 public struct WebcardRefreshResult: Sendable {
     public let sourceURL: URL
     public let capture: WebcardCapture
@@ -138,6 +328,14 @@ public struct WebcardRefreshResult: Sendable {
     public init(sourceURL: URL, capture: WebcardCapture) {
         self.sourceURL = sourceURL
         self.capture = capture
+    }
+}
+
+private extension Duration {
+    var timeInterval: TimeInterval {
+        let components = self.components
+        return TimeInterval(components.seconds)
+            + TimeInterval(components.attoseconds) / 1_000_000_000_000_000_000
     }
 }
 

@@ -17,14 +17,13 @@
 		A00000000000000000000008 /* WebcardThumbnail.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008 /* WebcardThumbnail.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A00000000000000000000009 /* WebcardPreview.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009 /* WebcardPreview.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A0000000000000000000000A /* SelectableMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000E /* SelectableMetadataView.swift */; };
-		A0000000000000000000000B /* LayoutDebugPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000F /* LayoutDebugPanel.swift */; };
-		A0000000000000000000000C /* LayoutDebugCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010 /* LayoutDebugCapture.swift */; };
 		A0000000000000000000000D /* WebcardCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* WebcardCommands.swift */; };
 		A0000000000000000000000E /* MetadataWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* MetadataWindow.swift */; };
 		A0000000000000000000000F /* SelectableMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000E /* SelectableMetadataView.swift */; };
 		A00000000000000000000010 /* WebcardCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* WebcardCardView.swift */; };
 		A00000000000000000000011 /* WebcardFolderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* WebcardFolderView.swift */; };
 		A00000000000000000000012 /* WebcardOpenRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* WebcardOpenRouter.swift */; };
+		A00000000000000000000013 /* RecursiveWebcardDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* RecursiveWebcardDiscovery.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,13 +73,12 @@
 		A1000000000000000000000C /* WebcardThumbnail.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WebcardThumbnail.entitlements; sourceTree = "<group>"; };
 		A1000000000000000000000D /* WebcardPreview.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WebcardPreview.entitlements; sourceTree = "<group>"; };
 		A1000000000000000000000E /* SelectableMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectableMetadataView.swift; sourceTree = "<group>"; };
-		A1000000000000000000000F /* LayoutDebugPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutDebugPanel.swift; sourceTree = "<group>"; };
-		A10000000000000000000010 /* LayoutDebugCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutDebugCapture.swift; sourceTree = "<group>"; };
 		A10000000000000000000011 /* WebcardCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcardCommands.swift; sourceTree = "<group>"; };
 		A10000000000000000000012 /* MetadataWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataWindow.swift; sourceTree = "<group>"; };
 		A10000000000000000000013 /* WebcardCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcardCardView.swift; sourceTree = "<group>"; };
 		A10000000000000000000014 /* WebcardFolderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcardFolderView.swift; sourceTree = "<group>"; };
 		A10000000000000000000015 /* WebcardOpenRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcardOpenRouter.swift; sourceTree = "<group>"; };
+		A10000000000000000000016 /* RecursiveWebcardDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecursiveWebcardDiscovery.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -127,13 +125,12 @@
 				A10000000000000000000001 /* WebcardApp.swift */,
 				A10000000000000000000002 /* WebcardDocumentView.swift */,
 				A1000000000000000000000E /* SelectableMetadataView.swift */,
-				A1000000000000000000000F /* LayoutDebugPanel.swift */,
-				A10000000000000000000010 /* LayoutDebugCapture.swift */,
 				A10000000000000000000011 /* WebcardCommands.swift */,
 				A10000000000000000000012 /* MetadataWindow.swift */,
 				A10000000000000000000013 /* WebcardCardView.swift */,
 				A10000000000000000000014 /* WebcardFolderView.swift */,
 				A10000000000000000000015 /* WebcardOpenRouter.swift */,
+				A10000000000000000000016 /* RecursiveWebcardDiscovery.swift */,
 				A10000000000000000000005 /* Info.plist */,
 				A1000000000000000000000B /* Webcard.entitlements */,
 			);
@@ -287,13 +284,12 @@
 				A00000000000000000000001 /* WebcardApp.swift in Sources */,
 				A00000000000000000000002 /* WebcardDocumentView.swift in Sources */,
 				A0000000000000000000000A /* SelectableMetadataView.swift in Sources */,
-				A0000000000000000000000B /* LayoutDebugPanel.swift in Sources */,
-				A0000000000000000000000C /* LayoutDebugCapture.swift in Sources */,
 				A0000000000000000000000D /* WebcardCommands.swift in Sources */,
 				A0000000000000000000000E /* MetadataWindow.swift in Sources */,
 				A00000000000000000000010 /* WebcardCardView.swift in Sources */,
 				A00000000000000000000011 /* WebcardFolderView.swift in Sources */,
 				A00000000000000000000012 /* WebcardOpenRouter.swift in Sources */,
+				A00000000000000000000013 /* RecursiveWebcardDiscovery.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

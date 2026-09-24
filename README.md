@@ -2,9 +2,11 @@
 
 Webcard is a native macOS document app for creating, opening, refreshing, and versioning `.webcard` files.
 
-Each document window displays one saved card. Use the macOS **Card** menu for **Refresh** (Command-R), **Truncate Text**, and the **Versions** selector. These commands affect the active document window; the window has no control footer or app toolbar. Refresh status appears in the window subtitle. Changed metadata or image content becomes a new dated capture in the document, which can then be saved normally.
+When Webcard opens without a document, it displays only the app start window, with no blank Untitled document alongside it. Enter a public website address there to create a webcard, choose **Choose File or Folder** to open saved webcards, or drag a `.webcard` file or folder of webcards onto the drop area. **File > Create Webcard** returns to the same app start window instead of opening a separate empty document.
 
-Choose **File > Open** (Command-O) to open one or more `.webcard` files, folders, or a mixture of both from the same picker. You can also drag a `.webcard` file or folder onto the Webcard app icon in Finder. Folder windows browse every `.webcard` file in the selected folder. Use **View > Folder Layout** to switch between a masonry layout that preserves each card's natural height and an equal-height row-based grid. Grid cards use a consistent cropped image height, share the tallest visible metadata height, and limit descriptions to two lines. Use the stepper to choose one to eight columns, and use the search field to fuzzy filter by filename, title, description, site name, or URL. Folder cards and individual document cards use the same renderer.
+Each document window displays one saved card. Use the macOS **Card** menu for **Refresh** (Command-R), **Truncate Text**, and **Versions**. These commands affect the active document window; the window has no control footer or app toolbar. Refresh status appears in the window subtitle. Changed metadata or image content becomes a new dated capture in the document, which can then be saved normally.
+
+Choose **File > Open** (Command-O) to open one or more `.webcard` files, folders, or a mixture of both from the same picker. You can also drag a `.webcard` file or folder onto the Webcard app icon in Finder. Folder windows include an expandable sidebar tree for navigating the opened folder and its discovered subfolders. The gallery renders immediate webcards first, then performs bounded background discovery for nested folders without following symlinks, entering packages, crossing volumes, or scanning hidden directories. Inline presentation appends each discovered directory as a named section after cards in the current directory and shows its path relative to the current visual root. At most two nested directory levels are shown inline; deeper folders become continuation items that open as a new visual root. Use **View > Folder Presentation** to switch between inline sections and folder cards independently of **View > Folder Layout**, which controls masonry or equal-height grid card flow. Grid cards use a consistent cropped image height, share the tallest visible metadata height, and limit descriptions to two lines. Use **View > Folder Columns** to choose Deyn, the default responsive one-to-four-column layout, or a fixed count from one through four. Use the search field to fuzzy filter discovered cards by filename, title, description, site name, URL, or social metadata. Folder cards and individual document cards use the same renderer. Folder layout changes emit lightweight unified logging entries in the `FolderLayout` category with the active directory name, layout and presentation modes, column count, viewport size, card width, visible webcard count, and discovery state.
 
 **Card > Selectable Metadata** opens the selected version's full, untruncated metadata in a separate read-only window. Text can be selected and copied, and **Copy All** copies the complete metadata and capture date. This is a snapshot of that version, independent of subsequent selection or refresh changes in the document.
 
@@ -13,28 +15,6 @@ Compact windows keep a readable card width and use a centered image crop rather 
 Finder thumbnails and Space bar previews render from the saved archive without network access. Quick Look previews use the card's natural content height, up to the preview height limit, so short metadata does not leave an oversized empty section.
 
 Refresh also captures useful social metadata when a page provides it, including `og:image:alt` or `twitter:image:alt`, Open Graph content type and locale, article author and timestamps, article section, Twitter card type, and declared image type and dimensions. Image alt text becomes the card image's accessibility label. These fields are searchable in folder view and appear in **Card > Selectable Metadata** without cluttering the main card. Quick Look previews use the card's natural content height, up to the preview height limit, so short metadata does not leave an oversized empty section.
-
-## Layout debugging
-
-Choose **Card > Layout Debug** to open a separate Layout Debug window, then enable **Preview my desired layout**. Set **Desired card width** in points independently of the automatic layout, or choose **Use Window Width**. Wider cards scroll horizontally rather than being silently narrowed. Set the maximum rendered **Title lines** and **Description lines** separately. Text is measured at your selected width and shortened with an ellipsis only when it exceeds its line limit; zero lines hides that section. Enable **Mask (crop) image** to adjust image height and top, center, or bottom cropping. The URL stays complete. These per-window overrides do not change the saved document or the default algorithm; turn off the preview to return to the automatic layout.
-
-Add optional **What it is** and **What it should be** notes, then choose **Capture JSON**. This saves a plain `.json` file with separate `current` and `desired` objects. Each contains card width, image height and masking, title and description line limits, measured line counts, visible text, overflow, and notes. The surrounding context includes viewport and image dimensions, original text, URL, and app version so the case can be reproduced. `current` always describes the unmodified automatic layout, even while the desired preview is enabled.
-
-Share the JSON file or paste its contents. No PNG, screenshot, or image data is captured. The file is saved locally; nothing is uploaded automatically.
-
-The debug preview updates live. Text measurements are reused while settings are unchanged, and line-limited text measures only the visible prefix so long descriptions do not stall the controls.
-
-To generate a local sample comparison from the regression fixture:
-
-```sh
-GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all WEBCARD_DEBUG_CAPTURE_OUTPUT=/tmp/webcard-layout-sample.json swift test --filter LayoutDebugTests/testCaptureJSONContainsCurrentAndDesiredSettings
-```
-
-To replay the compact calibration against a captured case and save a before/after JSON comparison, supply the input capture and a new output path. The replay uses the captured text and image dimensions with an 18 pt placeholder favicon, without fetching the website or image:
-
-```sh
-GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all WEBCARD_LAYOUT_REGRESSION_INPUT=/path/to/capture.json WEBCARD_LAYOUT_REGRESSION_OUTPUT=/tmp/webcard-layout-before-after.json swift test --filter LayoutDebugTests/testCompactCalibrationAndBeforeAfterCapture
-```
 
 ## Requirements
 
@@ -51,4 +31,20 @@ GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all x
 
 ```sh
 open .build/xcode-target/Debug/Webcard.app
+```
+
+## Rebuild and reinstall
+
+Agents should finish app changes with one command:
+
+```sh
+WEBCARD_INSTALL_OWNER="agent or task name" ./scripts/reinstall-app.sh
+```
+
+The script runs the tests, rebuilds the app, safely replaces `/Applications/Webcard.app`, and opens the installed build. It holds a machine-wide per-user lock for the entire procedure. If another agent is already running it, the command exits with details about the lock owner instead of allowing concurrent builds or installations.
+
+To intentionally use another destination, set an absolute path ending in `Webcard.app`:
+
+```sh
+WEBCARD_INSTALL_PATH="$HOME/Applications/Webcard.app" ./scripts/reinstall-app.sh
 ```

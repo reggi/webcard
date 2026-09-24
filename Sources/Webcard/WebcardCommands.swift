@@ -17,7 +17,6 @@ struct WebcardCommandState {
     let selectedCaptureID: String?
     let refresh: () -> Void
     let selectCapture: (String) -> Void
-    let openLayoutDebug: () -> Void
     let openMetadata: () -> Void
 }
 
@@ -70,11 +69,6 @@ struct WebcardCommands: Commands {
                 state?.openMetadata()
             }
             .disabled(state?.selectedCaptureID == nil)
-
-            Button("Layout Debug…") {
-                state?.openLayoutDebug()
-            }
-            .disabled(state?.selectedCaptureID == nil)
         }
     }
 }
@@ -85,8 +79,8 @@ struct WebcardFolderCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("New Webcard") {
-                NSDocumentController.shared.newDocument(nil)
+            Button("Create Webcard") {
+                WebcardAppDelegate.shared?.showStartWindow()
             }
             .keyboardShortcut("n")
 
@@ -99,9 +93,34 @@ struct WebcardFolderCommands: Commands {
         CommandGroup(after: .toolbar) {
             Divider()
 
+            Button(
+                folderSettings.isDirectoryDrawerVisible
+                    ? "Hide Directory Drawer"
+                    : "Show Directory Drawer"
+            ) {
+                folderSettings.isDirectoryDrawerVisible.toggle()
+            }
+            .keyboardShortcut("s", modifiers: [.command, .control])
+            .disabled(!commandCenter.hasActiveFolder)
+
+            Divider()
+
             Menu("Folder Layout") {
                 layoutButton(.masonry)
                 layoutButton(.grid)
+            }
+            .disabled(!commandCenter.hasActiveFolder)
+
+            Menu("Folder Presentation") {
+                presentationButton(.inline)
+                presentationButton(.cards)
+            }
+            .disabled(!commandCenter.hasActiveFolder)
+
+            Menu("Folder Columns") {
+                ForEach(WebcardFolderColumnMode.allCases, id: \.self) { mode in
+                    columnButton(mode)
+                }
             }
             .disabled(!commandCenter.hasActiveFolder)
         }
@@ -119,17 +138,36 @@ struct WebcardFolderCommands: Commands {
         }
     }
 
+    private func presentationButton(
+        _ mode: WebcardFolderPresentationMode
+    ) -> some View {
+        Button {
+            folderSettings.presentationMode = mode
+        } label: {
+            if folderSettings.presentationMode == mode {
+                Label(mode.menuTitle, systemImage: "checkmark")
+            } else {
+                Text(mode.menuTitle)
+            }
+        }
+    }
+
+    private func columnButton(_ mode: WebcardFolderColumnMode) -> some View {
+        Button {
+            folderSettings.columnMode = mode
+        } label: {
+            if folderSettings.columnMode == mode {
+                Label(mode.menuTitle, systemImage: "checkmark")
+            } else {
+                Text(mode.menuTitle)
+            }
+        }
+    }
+
     private func presentOpenPanel() {
-        let panel = NSOpenPanel()
-        panel.title = "Open Webcard or Folder"
-        panel.prompt = "Open"
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = true
-        panel.allowedContentTypes = [.webcard]
-        guard panel.runModal() == .OK else {
+        guard let urls = WebcardOpenPanel.selectItems() else {
             return
         }
-        WebcardOpenRouter.open(panel.urls)
+        WebcardOpenRouter.open(urls)
     }
 }

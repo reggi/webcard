@@ -248,9 +248,105 @@ public struct WebcardFile: Hashable, Sendable {
         return captures.first { $0.id == currentCaptureID } ?? captures.last
     }
 
+    public var suggestedFilename: String {
+        let title = currentCapture.flatMap {
+            Self.conciseTitle($0.title, siteName: $0.siteName)
+        }
+        let candidates = [
+            title,
+            currentCapture?.siteName,
+            currentCapture?.canonicalURL.host(),
+            sourceURL?.host()
+        ]
+
+        let basename = candidates
+            .compactMap { $0 }
+            .lazy
+            .compactMap(Self.sanitizedFilenameComponent)
+            .first ?? "webcard"
+
+        return "\(basename).webcard"
+    }
+
     public mutating func append(_ capture: WebcardCapture) {
         captures.append(capture)
         currentCaptureID = capture.id
         lastRefreshedAt = capture.capturedAt
+    }
+
+    private static func sanitizedFilenameComponent(_ value: String) -> String? {
+        guard let normalized = normalizedText(value) else {
+            return nil
+        }
+
+        let folded = normalized
+            .folding(
+                options: [.diacriticInsensitive, .widthInsensitive],
+                locale: Locale(identifier: "en_US_POSIX")
+            )
+            .lowercased()
+        var slug = ""
+        var needsSeparator = false
+
+        for character in folded {
+            if character.isLetter || character.isNumber {
+                if needsSeparator && !slug.isEmpty {
+                    slug.append("-")
+                }
+                slug.append(character)
+                needsSeparator = false
+            } else {
+                needsSeparator = true
+            }
+        }
+
+        guard !slug.isEmpty else {
+            return nil
+        }
+
+        let maximumLength = 60
+        guard slug.count > maximumLength else {
+            return slug
+        }
+
+        let endIndex = slug.index(slug.startIndex, offsetBy: maximumLength)
+        let prefix = slug[..<endIndex]
+        let wordBoundary = prefix.lastIndex(of: "-") ?? endIndex
+        let shortened = slug[..<wordBoundary]
+        return shortened.isEmpty ? nil : String(shortened)
+    }
+
+    private static func conciseTitle(_ title: String, siteName: String) -> String? {
+        guard var normalizedTitle = normalizedText(title) else {
+            return nil
+        }
+
+        if let normalizedSiteName = normalizedText(siteName) {
+            for separator in [" | ", " - ", " – ", " — "] {
+                let suffix = separator + normalizedSiteName
+                if normalizedTitle.range(
+                    of: suffix,
+                    options: [.caseInsensitive, .anchored, .backwards]
+                ) != nil {
+                    normalizedTitle.removeLast(suffix.count)
+                    break
+                }
+            }
+        }
+
+        if let comma = normalizedTitle.firstIndex(of: ","),
+           normalizedTitle.distance(from: normalizedTitle.startIndex, to: comma) >= 12 {
+            normalizedTitle = String(normalizedTitle[..<comma])
+        }
+
+        return sanitizedFilenameComponent(normalizedTitle)
+    }
+
+    private static func normalizedText(_ value: String) -> String? {
+        let normalized = value
+            .split(whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines.union(.controlCharacters))
+        return normalized.isEmpty ? nil : normalized
     }
 }

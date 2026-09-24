@@ -13,7 +13,7 @@ struct WebcardCardView: View {
     let masksImage: Bool
     var titleLineLimit: Int?
     var descriptionLineLimit: Int?
-    var debugSettings: WebcardDebugSettings?
+    var urlLineLimit: Int?
 
     init(
         capture: WebcardCapture,
@@ -26,7 +26,7 @@ struct WebcardCardView: View {
         masksImage: Bool,
         titleLineLimit: Int? = nil,
         descriptionLineLimit: Int? = nil,
-        debugSettings: WebcardDebugSettings? = nil
+        urlLineLimit: Int? = nil
     ) {
         self.capture = capture
         self.image = image
@@ -38,7 +38,7 @@ struct WebcardCardView: View {
         self.masksImage = masksImage
         self.titleLineLimit = titleLineLimit
         self.descriptionLineLimit = descriptionLineLimit
-        self.debugSettings = debugSettings
+        self.urlLineLimit = urlLineLimit
     }
 
     var body: some View {
@@ -47,8 +47,7 @@ struct WebcardCardView: View {
                 image,
                 width: width,
                 height: imageHeight,
-                maskImage: debugSettings?.maskImage ?? masksImage,
-                cropPosition: debugSettings?.cropPosition ?? .center
+                maskImage: masksImage
             )
             .accessibilityLabel(capture.socialMetadata.imageAlt ?? capture.title)
             .contextMenu {
@@ -65,8 +64,9 @@ struct WebcardCardView: View {
                     usesInsecureHTTP: usesInsecureHTTP,
                     layoutWidth: width - WebcardLayoutMetrics.contentInset * 2,
                     maximumHeight: maximumMetadataHeight,
-                    titleLineLimit: debugSettings?.titleLines ?? titleLineLimit,
-                    descriptionLineLimit: debugSettings?.descriptionLines ?? descriptionLineLimit
+                    titleLineLimit: titleLineLimit,
+                    descriptionLineLimit: descriptionLineLimit,
+                    urlLineLimit: urlLineLimit
                 )
                 .frame(height: metadataHeight, alignment: .top)
 
@@ -98,13 +98,12 @@ struct WebcardCardView: View {
         _ image: NSImage,
         width: CGFloat,
         height: CGFloat,
-        maskImage: Bool = false,
-        cropPosition: ImageCropPosition = .center
+        maskImage: Bool = false
     ) -> some View {
         Image(nsImage: image)
             .resizable()
             .aspectRatio(contentMode: maskImage ? .fill : .fit)
-            .frame(width: width, height: height, alignment: cropPosition.alignment)
+            .frame(width: width, height: height)
             .clipped()
     }
 

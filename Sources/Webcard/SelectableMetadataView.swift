@@ -121,6 +121,7 @@ struct SelectableMetadataView: NSViewRepresentable {
     enum Field: String {
         case title
         case description
+        case url
     }
 
     private static let fieldAttribute = NSAttributedString.Key("WebcardMetadataField")
@@ -132,6 +133,7 @@ struct SelectableMetadataView: NSViewRepresentable {
         let maximumHeight: CGFloat?
         let titleLineLimit: Int?
         let descriptionLineLimit: Int?
+        let urlLineLimit: Int?
     }
 
     private struct CachedMetadata {
@@ -148,6 +150,7 @@ struct SelectableMetadataView: NSViewRepresentable {
     let maximumHeight: CGFloat?
     var titleLineLimit: Int? = nil
     var descriptionLineLimit: Int? = nil
+    var urlLineLimit: Int? = nil
 
     func makeNSView(context: Context) -> NSTextView {
         let textView = NSTextView()
@@ -179,7 +182,8 @@ struct SelectableMetadataView: NSViewRepresentable {
             width: layoutWidth,
             maximumHeight: maximumHeight,
             titleLineLimit: titleLineLimit,
-            descriptionLineLimit: descriptionLineLimit
+            descriptionLineLimit: descriptionLineLimit,
+            urlLineLimit: urlLineLimit
         )
         if textView.textStorage?.isEqual(to: text) != true {
             textView.textStorage?.setAttributedString(text)
@@ -199,7 +203,8 @@ struct SelectableMetadataView: NSViewRepresentable {
                 usesInsecureHTTP: usesInsecureHTTP,
                 width: width,
                 titleLineLimit: titleLineLimit,
-                descriptionLineLimit: descriptionLineLimit
+                descriptionLineLimit: descriptionLineLimit,
+                urlLineLimit: urlLineLimit
             )
         )
     }
@@ -210,7 +215,8 @@ struct SelectableMetadataView: NSViewRepresentable {
         width: CGFloat,
         maximumHeight: CGFloat? = nil,
         titleLineLimit: Int? = nil,
-        descriptionLineLimit: Int? = nil
+        descriptionLineLimit: Int? = nil,
+        urlLineLimit: Int? = nil
     ) -> CGFloat {
         metadata(
             for: capture,
@@ -218,7 +224,8 @@ struct SelectableMetadataView: NSViewRepresentable {
             width: width,
             maximumHeight: maximumHeight,
             titleLineLimit: titleLineLimit,
-            descriptionLineLimit: descriptionLineLimit
+            descriptionLineLimit: descriptionLineLimit,
+            urlLineLimit: urlLineLimit
         ).height
     }
 
@@ -245,24 +252,40 @@ struct SelectableMetadataView: NSViewRepresentable {
     }
 
     static func urlHeight(for capture: WebcardCapture, width: CGFloat) -> CGFloat {
-        measuredHeight(of: urlText(for: capture), width: width)
+        measuredHeight(of: urlText(for: capture, width: width, lineLimit: nil), width: width)
     }
 
     static func minimumHeight(for capture: WebcardCapture, usesInsecureHTTP: Bool, width: CGFloat) -> CGFloat {
         height(for: capture, usesInsecureHTTP: usesInsecureHTTP, width: width, maximumHeight: 0)
     }
 
-    private static func urlText(for capture: WebcardCapture) -> NSAttributedString {
+    private static func urlText(
+        for capture: WebcardCapture,
+        width: CGFloat,
+        lineLimit: Int?
+    ) -> NSAttributedString {
+        let font = NSFont.systemFont(ofSize: 12)
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byCharWrapping
-        return NSAttributedString(
-            string: capture.canonicalURL.absoluteString,
+        let text = NSMutableAttributedString(
+            string: limited(
+                capture.canonicalURL.absoluteString,
+                toLines: lineLimit,
+                font: font,
+                width: width
+            ),
             attributes: [
-                .font: NSFont.systemFont(ofSize: 12),
+                .font: font,
                 .foregroundColor: NSColor.secondaryLabelColor,
                 .paragraphStyle: paragraph
             ]
         )
+        text.addAttribute(
+            fieldAttribute,
+            value: Field.url.rawValue,
+            range: NSRange(location: 0, length: text.length)
+        )
+        return text
     }
 
     static func attributedString(
@@ -271,12 +294,13 @@ struct SelectableMetadataView: NSViewRepresentable {
         width: CGFloat,
         maximumHeight: CGFloat?,
         titleLineLimit: Int? = nil,
-        descriptionLineLimit: Int? = nil
+        descriptionLineLimit: Int? = nil,
+        urlLineLimit: Int? = nil
     ) -> NSAttributedString {
         metadata(
             for: capture, usesInsecureHTTP: usesInsecureHTTP, width: width,
             maximumHeight: maximumHeight, titleLineLimit: titleLineLimit,
-            descriptionLineLimit: descriptionLineLimit
+            descriptionLineLimit: descriptionLineLimit, urlLineLimit: urlLineLimit
         ).text
     }
 
@@ -286,12 +310,13 @@ struct SelectableMetadataView: NSViewRepresentable {
         width: CGFloat,
         maximumHeight: CGFloat?,
         titleLineLimit: Int?,
-        descriptionLineLimit: Int?
+        descriptionLineLimit: Int?,
+        urlLineLimit: Int?
     ) -> CachedMetadata {
         let key = CacheKey(
             capture: capture, usesInsecureHTTP: usesInsecureHTTP, width: width,
             maximumHeight: maximumHeight, titleLineLimit: titleLineLimit,
-            descriptionLineLimit: descriptionLineLimit
+            descriptionLineLimit: descriptionLineLimit, urlLineLimit: urlLineLimit
         )
         if let cached = metadataCache.last(where: { $0.key == key }) {
             return cached
@@ -299,7 +324,7 @@ struct SelectableMetadataView: NSViewRepresentable {
         let text = buildAttributedString(
             capture: capture, usesInsecureHTTP: usesInsecureHTTP, width: width,
             maximumHeight: maximumHeight, titleLineLimit: titleLineLimit,
-            descriptionLineLimit: descriptionLineLimit
+            descriptionLineLimit: descriptionLineLimit, urlLineLimit: urlLineLimit
         )
         let result = CachedMetadata(key: key, text: text, height: measuredHeight(of: text, width: width))
         if metadataCache.count == 12 {
@@ -316,6 +341,7 @@ struct SelectableMetadataView: NSViewRepresentable {
         maximumHeight: CGFloat?,
         titleLineLimit: Int?,
         descriptionLineLimit: Int?,
+        urlLineLimit: Int?,
         compactHeader: Bool = false
     ) -> NSAttributedString {
         if let maximumHeight {
@@ -390,7 +416,7 @@ struct SelectableMetadataView: NSViewRepresentable {
             ))
         }
 
-        output.append(urlText(for: capture))
+        output.append(urlText(for: capture, width: width, lineLimit: urlLineLimit))
         return output
     }
 
@@ -404,7 +430,8 @@ struct SelectableMetadataView: NSViewRepresentable {
             buildAttributedString(
                 capture: capture, usesInsecureHTTP: usesInsecureHTTP, width: width,
                 maximumHeight: nil, titleLineLimit: titleLines,
-                descriptionLineLimit: descriptionLines, compactHeader: true
+                descriptionLineLimit: descriptionLines, urlLineLimit: nil,
+                compactHeader: true
             )
         }
         var titleLines = 1

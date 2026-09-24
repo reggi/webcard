@@ -5,6 +5,61 @@ import ZIPFoundation
 
 struct WebcardArchiveTests {
     @Test
+    func suggestsFilenameFromCurrentCaptureTitle() {
+        let capture = WebcardCapture(
+            id: "capture",
+            canonicalURL: URL(string: "https://runningonrealfood.com/recipe")!,
+            title: "  Healthy Banana/Oatmeal: Cookies\n",
+            summary: "Description",
+            siteName: "Running on Real Food",
+            imageSHA256: "hash",
+            capturedAt: Date(timeIntervalSince1970: 0),
+            imageData: Data()
+        )
+        let file = WebcardFile(
+            sourceURL: URL(string: "https://runningonrealfood.com/recipe")!,
+            captures: [capture]
+        )
+
+        #expect(file.suggestedFilename == "healthy-banana-oatmeal-cookies.webcard")
+    }
+
+    @Test
+    func suggestsFilenameFromHostWhenCardTextIsEmpty() {
+        let capture = WebcardCapture(
+            id: "capture",
+            canonicalURL: URL(string: "https://example.com/article")!,
+            title: " ",
+            summary: "",
+            siteName: "\n",
+            imageSHA256: "hash",
+            capturedAt: Date(timeIntervalSince1970: 0),
+            imageData: Data()
+        )
+        let file = WebcardFile(captures: [capture])
+
+        #expect(file.suggestedFilename == "example-com.webcard")
+        #expect(WebcardFile().suggestedFilename == "webcard.webcard")
+    }
+
+    @Test
+    func shortensMarketplaceProductTitle() {
+        let capture = WebcardCapture(
+            id: "capture",
+            canonicalURL: URL(string: "https://www.ebay.com/itm/235202569033")!,
+            title: "Dell Latitude E6420, 6 GB RAM, 128 GB SSD, core i3, read description and look. | eBay",
+            summary: "Generic charger included.",
+            siteName: "eBay",
+            imageSHA256: "hash",
+            capturedAt: Date(timeIntervalSince1970: 0),
+            imageData: Data()
+        )
+        let file = WebcardFile(captures: [capture])
+
+        #expect(file.suggestedFilename == "dell-latitude-e6420.webcard")
+    }
+
+    @Test
     func roundTripsVersionTwoArchive() throws {
         let date = Date(timeIntervalSince1970: 1_790_196_000)
         let image = Data("image bytes".utf8)
@@ -80,6 +135,31 @@ struct WebcardArchiveTests {
         #expect(metadata.socialMetadata.imageMIMEType == "image/jpeg")
         #expect(metadata.socialMetadata.imageWidth == 1200)
         #expect(metadata.socialMetadata.imageHeight == 630)
+    }
+
+    @Test
+    func prefersSketchfabSocialImageOverProxyBackground() throws {
+        let imageURL = "https://media.sketchfab.com/models/68227964f50f4dbc821315b2ed639d0e/thumbnails/5d3a9dfb3bee41f2b37fbf0606ade113/89a3a151b0b145f4a9bfe5dd465bc1b1.jpeg"
+        let html = """
+        <html>
+          <head>
+            <meta property="twitter:image" content="\(imageURL)">
+            <meta property="og:image" content="\(imageURL)">
+            <style>
+              .thumbnail {
+                background-image: url(&quot;/api/image-proxy?url=https%3A%2F%2Fmedia.sketchfab.com%2Fignored.jpeg&quot;);
+              }
+            </style>
+          </head>
+        </html>
+        """
+
+        let metadata = HTMLMetadata.parse(
+            html,
+            pageURL: URL(string: "https://sketchfab.com/3d-models/example")!
+        )
+
+        #expect(metadata.imageURL == URL(string: imageURL))
     }
 
     @Test

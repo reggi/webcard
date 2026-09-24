@@ -3,3 +3,6 @@
 *.xcuserstate
 xcuserdata/
 .DS_Store
+/*.d
+/*.o
+/*.swiftdeps
