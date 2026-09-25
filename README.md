@@ -1,22 +1,63 @@
-# Webcard
+<p align="center">
+  <img src="Assets/AppIcon.png" width="160" height="160" alt="Webcard app icon">
+</p>
 
-Webcard is a native macOS document app for creating, opening, refreshing, and versioning `.webcard` files.
+<h1 align="center">Webcard</h1>
 
-The portable file format is formally documented under [`spec/`](spec/README.md). The application reads and writes Webcard Format 1.0.0. Legacy prototype archives are intentionally unsupported.
+<p align="center"><strong>A native macOS home for portable, versioned web bookmarks.</strong></p>
 
-When Webcard opens without a document, it displays only the app start window, with no blank Untitled document alongside it. Enter a public website address there to create a webcard, choose **Choose File or Folder** to open saved webcards, or drag a `.webcard` file or folder of webcards onto the drop area. **File > Create Webcard** returns to the same app start window instead of opening a separate empty document. Use **File > Import URLs** to paste one public URL per line and save many webcards into a chosen folder. Bulk imports run one capture at a time and wait at least eight seconds before starting another capture for the same domain.
+<p align="center">Capture a public webpage as a beautiful card, keep its history, and carry it as a file you control.</p>
 
-Each document window displays one saved card and defaults to a 550 by 550 point window when macOS does not have a restored user size. Use the macOS **Card** menu for **Refresh** (Command-R), **Truncate Text**, and **Versions**. These commands affect the active document window; the window has no control footer or app toolbar. Refresh status appears in the window subtitle. Changed metadata or image content becomes a new dated capture in the document, which can then be saved normally.
+Webcard turns a website address into a `.webcard` document containing the page's preview image, title, description, URL, social metadata, and capture history. Each card opens as a native Mac document, can be refreshed as the page changes, and remains useful in Finder through thumbnails and Quick Look previews.
 
-Choose **File > Open** (Command-O) to open one or more `.webcard` files, folders, or a mixture of both from the same picker. You can also drag a `.webcard` file or folder onto the Webcard app icon in Finder. Folder windows include an expandable sidebar tree for navigating the opened folder and its discovered subfolders. The gallery renders immediate webcards first, then performs bounded background discovery for nested folders without following symlinks, entering packages, crossing volumes, or scanning hidden directories. Inline presentation appends each discovered directory as a named section after cards in the current directory and shows its path relative to the current visual root. At most two nested directory levels are shown inline; deeper folders become continuation items that open as a new visual root. Use **View > Folder Presentation** to switch between inline sections and folder cards independently of **View > Folder Layout**, which controls masonry or equal-height grid card flow. Grid cards use a consistent cropped image height, share the tallest visible metadata height, and limit descriptions to two lines. Use **View > Folder Columns** to choose Deyn, the default responsive one-to-four-column layout, or a fixed count from one through four. Use the search field to rank discovered cards by filename, title, description, site name, URL, folder path, or social metadata. Search is case and diacritic insensitive, understands quoted phrases and punctuation, and tolerates small spelling mistakes while avoiding broad short-query fuzzy matches. Folder cards and individual document cards use the same renderer. Folder layout changes emit lightweight unified logging entries in the `FolderLayout` category with the active directory name, layout and presentation modes, column count, viewport size, card width, visible webcard count, and discovery state.
+Instead of keeping bookmarks inside a browser or account, Webcard saves them as portable files. Open a single card, organize a folder into a visual collection, search across saved metadata, or share the file like any other document.
 
-**Card > Selectable Metadata** opens the selected version's full, untruncated metadata in a separate read-only window. Text can be selected and copied, and **Copy All** copies the complete metadata and capture date. This is a snapshot of that version, independent of subsequent selection or refresh changes in the document.
+## What you can do
 
-Compact windows keep a readable card width and use a centered image crop rather than shrinking the card excessively. Regular windows expand the card to the available width with standard outer insets. The fitted content height is split between the image and metadata using a calibrated ratio, currently about 68% for the image and 32% for metadata. Text is shortened by rendered lines to fit its share while keeping at least one line each of the title and description. The complete URL wraps instead of being truncated, and Open in Browser remains visible whenever the minimum content can fit. Turn off Truncate Text to show the complete image and text with vertical scrolling. If the minimum content still cannot fit, the card scrolls rather than hiding it.
+| | |
+| --- | --- |
+| **Capture** | Create a webcard from any public website address. |
+| **Refresh** | Save new dated captures when a page's metadata or image changes. |
+| **Collect** | Open folders as searchable visual galleries with flexible layouts. |
+| **Inspect** | View and copy the complete metadata stored with any saved version. |
+| **Preview** | See Finder thumbnails and Quick Look previews without network access. |
+| **Own** | Keep each bookmark as a portable, open format file on your Mac. |
 
-Finder thumbnails and Space bar previews render from the saved archive without network access. Quick Look previews default to the same 550 by 550 point size as document windows and use the shared card layout.
+## The Webcard format
 
-Refresh also captures useful social metadata when a page provides it, including `og:image:alt` or `twitter:image:alt`, Open Graph content type and locale, article author and timestamps, article section, Twitter card type, and declared image type and dimensions. Image alt text becomes the card image's accessibility label. These fields are searchable in folder view and appear in **Card > Selectable Metadata** without cluttering the main card.
+The portable file format is documented under [`spec/`](spec/README.md). Webcard reads and writes [Webcard Format 1.0.0](spec/1.0.0/README.md), an open ZIP based container designed for bookmarks, link previews, capture history, and interoperable extensions. Legacy prototype archives are intentionally unsupported.
+
+## Using the app
+
+### Create and open
+
+* Enter a public website address in the start window to create a webcard.
+* Choose **Choose File or Folder**, use **File > Open** (Command-O), or drag `.webcard` files and folders into Webcard.
+* Use **File > Create Webcard** to return to the start window at any time.
+* Use **File > Import URLs** to paste one public URL per line and save a collection into a chosen folder. Imports run sequentially and pause between captures from the same domain.
+
+### Refresh and explore history
+
+* Use **Card > Refresh** (Command-R) to capture the latest image and metadata. Changes become a new dated version.
+* Use **Card > Versions** to move through saved captures.
+* Use **Card > Selectable Metadata** to view and copy the selected version's complete metadata and capture date.
+* Webcard preserves useful social metadata such as image descriptions, content type, locale, author, timestamps, article section, and declared image dimensions.
+
+### Browse collections
+
+* Open a folder to browse its webcards as a visual gallery with an expandable navigation sidebar.
+* Use **View > Folder Presentation** to choose inline sections or folder cards.
+* Use **View > Folder Layout** to choose masonry or an equal height grid.
+* Use **View > Folder Columns** to choose the responsive Deyn layout or a fixed count from one through four.
+* Search by filename, title, description, site name, URL, folder path, or social metadata. Search supports quoted phrases, punctuation, diacritics, and small spelling mistakes.
+* Nested folders are discovered safely in the background without following symlinks, entering packages, crossing volumes, or scanning hidden directories.
+
+### Read and preview
+
+* Document windows default to 550 by 550 points and adapt the card layout as the window changes size.
+* Use **Card > Truncate Text** to switch between a fitted card and the complete scrollable content.
+* Full URLs wrap instead of being cut off, and **Open in Browser** remains available whenever the minimum content fits.
+* Finder thumbnails and Quick Look previews render from the saved archive without network access.
 
 ## Requirements
 
