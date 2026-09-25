@@ -92,6 +92,7 @@ code {
   color: #fff;
   background: rgb(255 255 255 / 8%);
   backdrop-filter: blur(18px);
+  cursor: pointer;
 }
 
 .hero {
@@ -191,6 +192,8 @@ h1 {
 }
 
 .download-button {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -203,8 +206,10 @@ h1 {
   box-shadow:
     0 15px 36px rgb(103 59 204 / 34%),
     inset 0 1px rgb(255 255 255 / 25%);
+  cursor: pointer;
   font-size: 15px;
   font-weight: 700;
+  pointer-events: auto;
   transition:
     transform 180ms ease,
     box-shadow 180ms ease;
@@ -254,6 +259,7 @@ h1 {
   z-index: 2;
   width: min(1120px, 100%);
   margin: 0 auto;
+  pointer-events: none;
 }
 
 .hero-screenshot::before {
