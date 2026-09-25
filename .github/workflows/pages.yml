@@ -1,6 +1,12 @@
 name: Deploy Website
 
 on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - ".github/workflows/pages.yml"
+      - "website/**"
   workflow_call:
     inputs:
       tag:
@@ -49,12 +55,16 @@ jobs:
         working-directory: website
         run: npm test
 
-      - name: Build website for the completed release
+      - name: Build website
         working-directory: website
         env:
           RELEASE_TAG: ${{ inputs.tag }}
           GH_TOKEN: ${{ github.token }}
         run: npm run build
+
+      - name: Verify Pages artifact
+        working-directory: website
+        run: test -f dist/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
